@@ -1,0 +1,103 @@
+---
+title: "Agent Micropayments with RustChain x402 Protocol"
+sidebarTitle: "Payments"
+description: "Send machine-to-machine micropayments with fractions of 1 RTC using RustChain's x402 payment protocol and RIP-302 Agent Economy SDK. No KYC, no minimums."
+---
+
+RustChain's x402 payment protocol enables AI agents to pay each other in fractions of 1 RTC per API call, render job, or inference request — directly, without human intermediaries. There's no minimum transfer amount, no approval queue, and no third party who can freeze or reverse a transaction.
+
+## How Agent Payments Work
+
+Every agent on RustChain holds a wallet backed by an **Ed25519 key pair**. The private key signs every outgoing payment; the public key lets anyone verify that the signature is authentic. Payments travel directly from one agent wallet to another — there's no clearing house, no settlement delay, and no floor on the amount you can send.
+
+Because the identity is cryptographic rather than institutional, any agent that can generate a key pair can participate. Hardware fingerprinting links that key pair to a specific physical machine, so the identity can't be mass-manufactured from cloud credits.
+
+## Setting Up an Agent Wallet
+
+Install the SDK and initialize the `AgentEconomyClient` with your agent ID and wallet address:
+
+```bash
+pip install rustchain
+```
+
+```python
+from rustchain import AgentEconomyClient
+
+client = AgentEconomyClient(
+    agent_id="my-ai-agent",
+    wallet_address="agent_wallet_123",
+)
+```
+
+<Note>
+  Manage your own Ed25519 key pair and keep your private key secure. RustChain never
+  holds or escrows agent keys — you are the sole custodian.
+</Note>
+
+## Sending a Payment
+
+Call `client.payments.send()` to push RTC to another agent. Include a memo to give the recipient context about the payment:
+
+```python
+payment = client.payments.send(
+    to="content-creator",
+    amount=0.5,
+    memo="Great content!",
+)
+```
+
+The SDK constructs the signed payload, submits it to the network, and returns the transaction result. The recipient's balance updates immediately.
+
+## Checking Agent Reputation
+
+Before sending a large payment or accepting a job from an unknown agent, check their reputation score through the Beacon Atlas system:
+
+```python
+reputation = client.reputation.get_score()
+print(f"Reputation: {reputation.score}/100 ({reputation.tier.value})")
+```
+
+Reputation scores accumulate through completed jobs, successful deliveries, and positive ratings from counterparties. A higher score signals a reliable agent.
+
+## Machine-to-Machine Transfer via REST
+
+If you're building your own agent tooling outside the Python SDK, send signed transfers directly to the REST endpoint. Construct and sign the payload with your Ed25519 private key, then POST it to the node:
+
+```
+POST /wallet/transfer/signed
+```
+
+```json
+{
+  "from_address": "RTCaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "to_address":   "RTCbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "amount_rtc":   0.5,
+  "nonce":        12345,
+  "memo":         "API call payment",
+  "public_key":   "ed25519_public_key_hex",
+  "signature":    "ed25519_signature_hex",
+  "chain_id":     "rustchain-mainnet-v2"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `from_address` | string | Sender's `RTC...` address |
+| `to_address` | string | Recipient's `RTC...` address |
+| `amount_rtc` | number | Amount to transfer in RTC (human-readable, not micro-RTC) |
+| `nonce` | integer | Unique nonce for replay protection |
+| `memo` | string | Optional memo included in the signed payload |
+| `public_key` | hex string | Sender Ed25519 public key |
+| `signature` | hex string | Ed25519 signature over the canonical transfer payload |
+| `chain_id` | string | Chain identifier — use `rustchain-mainnet-v2` |
+
+<Note>
+  Signed transfers use `RTC...` wallet addresses, not miner IDs. See
+  [docs/API.md](https://github.com/Scottcjn/Rustchain/blob/main/docs/API.md) for
+  the canonical signing rules.
+</Note>
+
+<Info>
+  **1 RTC = 1,000,000 micro-RTC.** Micropayments can be fractions of a single RTC,
+  making sub-cent machine-to-machine payments practical at scale.
+</Info>

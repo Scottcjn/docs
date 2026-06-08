@@ -1,0 +1,84 @@
+---
+title: "Supported Hardware Architectures for RustChain Mining"
+sidebarTitle: "Supported Hardware"
+description: "RustChain supports 15+ CPU architectures including PowerPC, SPARC, MIPS, 68K, RISC-V, Cell BE, and modern x86. See which tier your hardware falls into and its reward multiplier."
+---
+
+RustChain supports over 15 CPU architectures, from modern x86_64 to 1970s mainframes. Every architecture is supported — older and rarer hardware simply earns higher rewards. Your multiplier is detected automatically during hardware attestation; you don't need to declare your architecture manually.
+
+## Fully supported architectures
+
+The table below shows each supported architecture family, representative hardware, and its reward multiplier tier. Multipliers reflect base values; the final multiplier is calculated server-side using the [CPU Antiquity System](/mining/rewards) and may include time-decay and loyalty bonuses.
+
+| Architecture | Example Hardware | Multiplier Tier |
+|---|---|---|
+| x86_64 — modern Intel/AMD (Skylake and later) | Current desktops, laptops, servers | 0.8–1.0x |
+| Apple Silicon (M1 through M4) | MacBook Air/Pro, Mac mini, iMac | 1.05–1.2x |
+| Vintage x86 — 386 through Core 2 | Pentium 4 PCs, Core 2 Duo laptops | 1.3–3.0x |
+| PowerPC G3 | iMac G3, PowerBook G3 (Wallstreet/Lombard) | 1.8x |
+| PowerPC G4 | Power Mac G4, PowerBook G4, iBook G4 | 2.5x |
+| PowerPC G5 | Power Mac G5, iMac G5 | 2.0x |
+| IBM POWER8 | IBM Power System S822/S824 | 1.5x |
+| IBM POWER9 | IBM Power System AC922 | 1.8x |
+| RISC-V | SiFive HiFive Unmatched, StarFive VisionFive 2 | 1.4–1.5x |
+| Sun SPARC (v7–v9, UltraSPARC) | SPARCstation, Sun Blade, Sun Fire | 1.7–2.9x |
+| SGI MIPS (R2000–R16000) | SGI Indy, Indigo2, Octane, Origin | 2.3–3.0x |
+| Motorola 68K (68000–68060) | Classic Mac, Amiga, Atari ST | 2.2–3.0x |
+| PS3 Cell Broadband Engine | PlayStation 3 (running Linux) | 2.2x |
+| DEC VAX | MicroVAX, VAXstation | 3.5x |
+| Acorn ARM2 (vintage, pre-1995) | Acorn Archimedes A305/A310 | 4.0x |
+
+<Info>
+  Multipliers are detected automatically from your CPU's hardware attestation signals — clock drift, SIMD capabilities, cache topology, and thermal entropy. You don't need to declare your architecture anywhere.
+</Info>
+
+## Penalized hardware
+
+The following hardware receives a severely reduced multiplier by design:
+
+| Architecture | Multiplier | Reason |
+|---|---|---|
+| Modern ARM SBCs and NAS devices — Raspberry Pi 4/5, aarch64, armv7 (Cortex-A53/A55/A72/A76), cloud ARM (AWS Graviton, Ampere Altra) | 0.0005x | Anti-spam penalty |
+
+**Why the penalty?** Devices like the Raspberry Pi cost as little as $35 and are trivially farmable — a single actor could connect thousands of them to game the reward pool. The 0.0005x multiplier makes ARM SBC farms economically pointless while still allowing individual devices to participate.
+
+<Note>
+  Genuine vintage ARM hardware — ARM2, ARM3, ARM7TDMI, StrongARM SA-110/SA-1100, XScale, ARM9, ARM11, Cortex-A8, and Cortex-A9 — receives full antiquity multipliers, not the penalty. The server uses SIMD evidence and brand string cross-validation to distinguish vintage ARM from modern SBC spam.
+</Note>
+
+## Blocked hardware
+
+The following receive a **0x multiplier** (no rewards at all):
+
+| Type | Examples | Reason |
+|---|---|---|
+| Virtual machines | VMware, VirtualBox, QEMU, Hyper-V, KVM | Fingerprint detection |
+| Containers | Docker, LXC, Kubernetes pods | Fingerprint detection |
+| Emulators | SheepShaver pretending to be a G4, MAME, any ROM-based emulator | ROM clustering detection |
+
+RustChain's six hardware fingerprint checks catch VMs and emulators through oscillator drift analysis, cache timing, SIMD identity verification, thermal entropy curves, instruction path jitter, and active anti-emulation probes. A SheepShaver VM pretending to be a G4 Mac will fail these checks — real vintage silicon has unique physical aging patterns that cannot be synthesized.
+
+## Special architecture notes
+
+### PowerPC Macs
+
+- **64-bit PowerPC Linux** (`ppc64le`): The one-line installer fully supports this path. IBM POWER8 systems running Linux use `ppc64le` and receive the POWER8 multiplier.
+- **32-bit PowerPC Macs** (G3, G4, G5): The one-line installer targets 64-bit paths. If your PowerPC Mac reports `powerpc` or `ppc` via `uname -m`, use the PyPI `clawrtc` installer or the manual miner path instead.
+- **Older Mac OS X (Tiger, Leopard)**: These are not supported by the one-line installer, which requires a Python 3 virtualenv. Use the manual Python path documented in [Manage Miner](/mining/manage-miner).
+
+### RISC-V
+
+The following RISC-V boards are explicitly supported and tested:
+
+- **SiFive HiFive Unmatched** — SiFive U740 SoC, quad-core RV64GC, 16 GB RAM (1.5x)
+- **StarFive VisionFive 2** — JH7110 SoC, quad-core RV64GC, up to 8 GB RAM (1.4x)
+- **Milk-V Mars** — JH7110 SoC, similar spec to VisionFive 2 (1.4x)
+- Generic `riscv64` boards receive the 1.4x baseline multiplier.
+
+### FreeBSD
+
+Use `install-miner-freebsd.sh` instead of the standard Linux installer. The FreeBSD path is available in the RustChain repository and supports x86_64 and select PowerPC targets.
+
+<Info>
+  Multipliers are calculated and verified server-side. The server cross-validates your CPU's claimed architecture against SIMD evidence, brand strings, and timing signals before assigning any multiplier. Self-reported architecture values alone are not trusted.
+</Info>

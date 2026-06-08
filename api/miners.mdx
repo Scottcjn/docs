@@ -1,0 +1,90 @@
+---
+title: "GET /api/miners — List Active RustChain Miners"
+sidebarTitle: "Miners"
+description: "GET /api/miners returns all enrolled miners with their hardware type, antiquity multiplier, and last attestation timestamp. Public endpoint, no authentication required."
+---
+
+The `/api/miners` endpoint returns the current list of enrolled miners, including their hardware architecture and reward multiplier. You can call this endpoint at any time without authentication to inspect which machines are actively participating in the current epoch.
+
+```bash
+curl -fsS https://rustchain.org/api/miners | jq .
+```
+
+**Response**
+
+```json
+[
+  {
+    "miner": "eafc6f14eab6d5c5362fe651e5e6c23581892a37RTC",
+    "device_family": "PowerPC",
+    "device_arch": "G4",
+    "hardware_type": "PowerPC G4 (Vintage)",
+    "antiquity_multiplier": 2.5,
+    "entropy_score": 0.0,
+    "last_attest": 1770112912
+  },
+  {
+    "miner": "g5-selena-179",
+    "device_family": "PowerPC",
+    "device_arch": "G5",
+    "hardware_type": "PowerPC G5 (Vintage)",
+    "antiquity_multiplier": 2.0,
+    "entropy_score": 0.0,
+    "last_attest": 1770112865
+  }
+]
+```
+
+The response is a JSON array. Each element represents one enrolled miner.
+
+<ResponseField name="miner" type="string" required>
+  The unique miner identifier. For wallets derived from an Ed25519 key pair this
+  is the full `RTC...` wallet address; for legacy registrations it may be a
+  human-readable label.
+</ResponseField>
+
+<ResponseField name="device_family" type="string" required>
+  The CPU family reported during attestation (e.g. `"PowerPC"`, `"x86_64"`,
+  `"ARM"`).
+</ResponseField>
+
+<ResponseField name="device_arch" type="string" required>
+  The specific microarchitecture within the family (e.g. `"G4"`, `"G5"`,
+  `"M2"`).
+</ResponseField>
+
+<ResponseField name="hardware_type" type="string" required>
+  A human-readable description of the attested hardware
+  (e.g. `"PowerPC G4 (Vintage)"`).
+</ResponseField>
+
+<ResponseField name="antiquity_multiplier" type="float" required>
+  The reward multiplier applied to this miner's epoch payout. RustChain awards
+  higher multipliers to older or rarer hardware to incentivise the use of
+  physical vintage silicon.
+
+  | Example hardware | Multiplier |
+  |---|---|
+  | Modern x86_64 | `1.0` |
+  | PowerPC G5 (Vintage) | `2.0` |
+  | PowerPC G4 (Vintage) | `2.5` |
+</ResponseField>
+
+<ResponseField name="entropy_score" type="float" required>
+  A quality score derived from the hardware entropy sources sampled during
+  attestation. Higher values indicate richer physical entropy. `0.0` is valid
+  and common for vintage architectures whose entropy sources are fully consumed
+  by the attestation fingerprint.
+</ResponseField>
+
+<ResponseField name="last_attest" type="integer" required>
+  Unix timestamp (seconds) of the miner's most recent successful attestation.
+  You can compare this against the current epoch's slot timing to determine
+  whether a miner has re-attested in the current epoch.
+</ResponseField>
+
+<Note>
+  Only miners that have submitted a valid attestation in the current epoch
+  appear in this list. Miners that miss an epoch are excluded until they
+  re-attest.
+</Note>

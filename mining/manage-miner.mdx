@@ -1,0 +1,156 @@
+---
+title: "Manage Your RustChain Miner: Start, Stop, Logs, and Updates"
+sidebarTitle: "Manage Miner"
+description: "Learn how to start, stop, restart, and monitor your RustChain miner using systemd on Linux, launchd on macOS, and the clawrtc CLI wrapper."
+---
+
+After installation, use the `clawrtc` CLI or your OS service manager to control the miner process. If the installer set up auto-start — which it does by default — your miner is already running and earning rewards. Use the commands below to check on it, view logs, or stop it when needed.
+
+## Using the clawrtc CLI
+
+`clawrtc` is the primary management tool for the RustChain miner. It wraps the underlying service manager (systemd or launchd) and works the same way on both Linux and macOS:
+
+```bash
+# Start the miner as a background service
+clawrtc start --service
+
+# Stop the miner
+clawrtc stop
+
+# Check miner status and last heartbeat
+clawrtc status
+
+# Stream live miner logs
+clawrtc logs
+```
+
+Use `clawrtc status` first whenever you suspect an issue. It shows whether the miner process is running and when it last successfully attested to the network.
+
+## Linux (systemd)
+
+The installer creates a user-level systemd service at:
+
+```
+~/.config/systemd/user/rustchain-miner.service
+```
+
+Manage it with standard `systemctl --user` commands:
+
+```bash
+# Check whether the miner is running
+systemctl --user status rustchain-miner
+
+# Start the miner
+systemctl --user start rustchain-miner
+
+# Stop the miner
+systemctl --user stop rustchain-miner
+
+# Restart the miner (applies after config changes)
+systemctl --user restart rustchain-miner
+
+# Enable auto-start on boot
+systemctl --user enable rustchain-miner
+
+# Disable auto-start on boot
+systemctl --user disable rustchain-miner
+
+# Stream live logs via journald
+journalctl --user -u rustchain-miner -f
+```
+
+## macOS (launchd)
+
+The installer creates a user-level launch agent at:
+
+```
+~/Library/LaunchAgents/com.rustchain.miner.plist
+```
+
+Manage it with `launchctl`:
+
+```bash
+# Check whether the miner is loaded and running
+launchctl list | grep rustchain
+
+# Start the miner
+launchctl start com.rustchain.miner
+
+# Stop the miner
+launchctl stop com.rustchain.miner
+
+# Disable auto-start (unload the launch agent)
+launchctl unload ~/Library/LaunchAgents/com.rustchain.miner.plist
+
+# Re-enable auto-start (reload the launch agent)
+launchctl load ~/Library/LaunchAgents/com.rustchain.miner.plist
+
+# View miner log file
+tail -f ~/.rustchain/miner.log
+```
+
+## View miner logs
+
+Logs are the first place to look when troubleshooting attestation failures, network errors, or missing rewards.
+
+**Linux — stream live via journald:**
+
+```bash
+journalctl --user -u rustchain-miner -f
+```
+
+**All platforms — tail the log file directly:**
+
+```bash
+tail -f ~/.rustchain/miner.log
+```
+
+A healthy miner produces log lines like:
+
+```
+[1/6] Clock-Skew & Oscillator Drift... PASS
+[2/6] Cache Timing Fingerprint... PASS
+[3/6] SIMD Unit Identity... PASS
+[4/6] Thermal Drift Entropy... PASS
+[5/6] Instruction Path Jitter... PASS
+[6/6] Anti-Emulation Checks... PASS
+
+OVERALL RESULT: ALL CHECKS PASSED
+[+] Attestation accepted. Next attestation in 300s.
+```
+
+If any check fails or attestation is rejected, check [Troubleshooting](https://github.com/Scottcjn/Rustchain/blob/main/TROUBLESHOOTING.md) for remediation steps.
+
+## Miner configuration
+
+The miner stores its configuration and runtime files in `~/.rustchain/`. The key things to know:
+
+- **Wallet name** — set during installation. The wallet name is embedded in the miner's startup arguments. Keep it consistent across restarts; changing it mid-run effectively registers a different miner identity.
+- **Virtualenv** — the miner runs inside `~/.rustchain/venv/`. Do not delete this directory while the miner is running.
+- **Log file** — written to `~/.rustchain/miner.log` when running as a background service.
+
+To change your wallet name, reinstall the miner with an explicit `--wallet` flag:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash -s -- --wallet my-new-wallet-name
+```
+
+## Manual miner mode
+
+If you chose not to set up auto-start during installation, or if the service manager is unavailable on your platform, run the miner directly using Python:
+
+```bash
+python3 ~/.rustchain/rustchain_miner.py --wallet YOUR_WALLET
+```
+
+You can also use the convenience start script:
+
+```bash
+~/.rustchain/start.sh
+```
+
+Manual mode runs the miner in the foreground. Keep the terminal session open, or wrap the command in `screen`, `tmux`, or `nohup` to keep it running after you disconnect.
+
+<Tip>
+  Always use the same wallet name you registered with. If you use a different name, your rewards go to a separate wallet identity and your original balance won't grow.
+</Tip>

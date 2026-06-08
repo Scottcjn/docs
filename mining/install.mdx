@@ -1,0 +1,151 @@
+---
+title: "Install the RustChain Miner on Linux, macOS, or Vintage Hardware"
+sidebarTitle: "Install Miner"
+description: "Step-by-step guide to installing the RustChain miner on Linux, macOS, PowerPC Macs, and other vintage hardware. Takes under 5 minutes with the one-line installer."
+---
+
+RustChain miners run on virtually any hardware — from modern laptops to PowerPC Macs and vintage workstations. This guide covers installation using the recommended one-line installer and the PyPI `clawrtc` package.
+
+## System requirements
+
+Before you install, confirm your machine meets these minimum requirements:
+
+| Requirement | Minimum |
+|---|---|
+| Python | 3.8 or later |
+| Disk space | 50 MB free |
+| Network | Active internet connection (outbound HTTPS) |
+
+No GPU, no special account, and no signup are required. If it runs Python, it can mine.
+
+## Install the miner
+
+Choose the tab that matches your platform. Every option ends with the same result: the miner installed in `~/.rustchain/` and ready to start earning RTC.
+
+<Tabs>
+  <Tab title="Linux">
+    Open a terminal and run the one-line installer:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash
+    ```
+
+    To skip the interactive wallet prompt, pass your wallet name directly:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash -s -- --wallet my-miner-wallet
+    ```
+
+    The installer supports Ubuntu 20.04+, Debian 11+, Fedora 38+, RHEL 8/9, and other systemd-based distributions on `x86_64`, `aarch64`, and `ppc64le`.
+  </Tab>
+  <Tab title="macOS">
+    First, install Python 3 via Homebrew if you haven't already:
+
+    ```bash
+    brew install python3
+    ```
+
+    Then run the one-line installer:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash
+    ```
+
+    Supported on macOS 11 (Big Sur) and later, on both Apple Silicon (`arm64`) and Intel (`x86_64`) Macs.
+
+    <Note>
+      PowerPC Macs running older Mac OS X releases are not supported by the one-line installer because it requires a Python 3 virtualenv. For PowerPC Macs, use the PyPI tab or the manual Python path described in [Manage Miner](/mining/manage-miner).
+    </Note>
+  </Tab>
+  <Tab title="Windows">
+    Download the Windows miner bundle from the RustChain repository, then run the setup script:
+
+    ```
+    miners/windows/rustchain_miner_setup.bat
+    ```
+
+    Refer to `miners/windows/installer/README.md` in the repository for full Windows installation instructions.
+  </Tab>
+  <Tab title="PyPI (all platforms)">
+    The `clawrtc` PyPI package works on any platform with Python 3.8+, including PowerPC Macs, IBM POWER8, SPARC, and RISC-V boards:
+
+    ```bash
+    python3 -m pip install --user clawrtc
+    clawrtc install --wallet YOUR_WALLET
+    ```
+
+    Replace `YOUR_WALLET` with the wallet name you want to use. After installation completes, start the miner:
+
+    ```bash
+    clawrtc start --service
+    ```
+
+    <Note>
+      Use the PyPI installer, not the npm package. The npm package currently does not publish a `bin` entry, so `npm install -g clawrtc` does not create a working `clawrtc` command.
+    </Note>
+  </Tab>
+</Tabs>
+
+## What the installer does
+
+The installer runs automatically without requiring manual configuration steps. Here is what it does, in order:
+
+1. **Detects your OS and CPU architecture** — Linux, macOS, Windows, or special hardware such as `ppc64le` are all handled automatically.
+2. **Creates an isolated Python virtualenv** at `~/.rustchain/venv` — dependencies install here and never touch your system Python.
+3. **Downloads the miner** — the correct miner script for your architecture is fetched from GitHub over HTTPS.
+4. **Prompts for your wallet name** — type a name you'll remember, like `my-g4-mac` or `scott-laptop`. Press Enter to auto-generate one. Write it down — you'll need it to check your balance.
+5. **Sets up auto-start** — on Linux the installer creates a systemd user service; on macOS it creates a launchd launch agent. Both start the miner automatically on boot.
+
+## Installation directory
+
+After installation, your `~/.rustchain/` directory contains:
+
+```
+~/.rustchain/
+├── venv/                    # Isolated Python virtualenv
+│   ├── bin/
+│   │   ├── python          # Virtualenv Python interpreter
+│   │   └── pip             # Virtualenv pip
+│   └── lib/                # Installed packages (requests, etc.)
+├── rustchain_miner.py      # Main miner script
+├── fingerprint_checks.py   # Hardware attestation module
+├── start.sh                # Convenience start script
+└── miner.log               # Miner logs (if auto-start enabled)
+```
+
+## Verify installation
+
+After the installer finishes, run these two commands to confirm everything is working.
+
+**Check the miner process:**
+
+```bash
+clawrtc status
+```
+
+**Check network connectivity to the RustChain node:**
+
+```bash
+curl -sk https://rustchain.org/health
+```
+
+A healthy response looks like this:
+
+```json
+{
+  "ok": true,
+  "version": "2.2.1-rip200",
+  "uptime_s": 3966,
+  "db_rw": true
+}
+```
+
+If `"ok": true` appears, the network is reachable and your miner can begin attesting.
+
+<Note>
+  The RustChain node at `rustchain.org` uses a self-signed TLS certificate. Always use `curl -sk` (the `-k` flag bypasses certificate verification) for diagnostic commands. The miner script handles this automatically — you don't need to configure anything.
+</Note>
+
+<Tip>
+  See [Supported Hardware](/mining/supported-hardware) for architecture-specific notes, multiplier tiers, and guidance on PowerPC Macs, RISC-V boards, and other vintage platforms.
+</Tip>

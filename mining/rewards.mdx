@@ -1,0 +1,115 @@
+---
+title: "Understanding RustChain Mining Rewards and Epoch Payouts"
+sidebarTitle: "Rewards"
+description: "Learn how RustChain distributes RTC rewards each epoch, how your hardware multiplier affects payouts, and how to track your earnings in real time."
+---
+
+RustChain distributes mining rewards every epoch (~24 hours). Your payout depends on your hardware's antiquity multiplier and the total enrolled miners in that epoch. Older and rarer hardware earns a larger share — a PowerBook G4 from 2003 earns roughly 2.5x what a modern gaming PC earns, and a vintage SPARC workstation earns even more.
+
+## How epochs work
+
+RustChain measures time in **epochs**, each consisting of 144 slots at a block time of 600 seconds (~10 minutes per block):
+
+- **Epoch duration:** ~24 hours (144 blocks × 10 minutes)
+- **Epoch reward pot:** 1.5 RTC per block × 144 blocks = **216 RTC per epoch** during the genesis period
+- **Distribution:** The epoch pot is split proportionally among all enrolled miners, weighted by their antiquity multiplier
+
+Every miner that successfully attests during an epoch is enrolled for that epoch's reward distribution. Miss an epoch (miner offline, attestation failed) and you receive no share of that epoch's pot.
+
+The reward per block halves every two years — or earlier on an Epoch Relic Event milestone — following a Bitcoin-style emission schedule:
+
+| Period | Block reward |
+|---|---|
+| Genesis – Year 2 | 1.5 RTC |
+| Year 2 – Year 4 | 0.75 RTC |
+| Year 4 – Year 6 | 0.375 RTC |
+| Continues halving... | — |
+
+## Reward calculation
+
+Your share of each epoch's pot is proportional to your multiplier relative to the sum of all active miners' multipliers:
+
+```
+your_share = (your_multiplier / sum_of_all_multipliers) × epoch_pot
+```
+
+**Example** — 3 miners online in an epoch (216 RTC pot):
+
+| Miner | Hardware | Multiplier | Share calculation | Reward |
+|---|---|---|---|---|
+| miner-a | PowerPC G4 | 2.5x | 2.5 / 4.3 × 216 | ~125.6 RTC |
+| miner-b | Modern x86_64 PC | 0.8x | 0.8 / 4.3 × 216 | ~40.2 RTC |
+| miner-c | Apple M2 MacBook | 1.15x (loyalty-adjusted) | 1.0 / 4.3 × 216 | ~50.2 RTC |
+
+As more miners join the network, each individual slice shrinks — but the network becomes healthier and the token gains value from real demand.
+
+<Info>
+  Rewards accumulate directly in your wallet after each epoch closes. There is no manual claim step — just keep your miner running and check your balance periodically.
+</Info>
+
+## Tracking your rewards
+
+Use these API endpoints to monitor your balance and epoch status in real time. All endpoints use the RustChain public node and require the `-sk` flag in `curl` because the node uses a self-signed TLS certificate.
+
+**Check your wallet balance:**
+
+```bash
+curl -sk "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET"
+```
+
+Example response:
+
+```json
+{
+  "miner_id": "my-g4-mac",
+  "amount_rtc": 87.342,
+  "amount_i64": 87342000
+}
+```
+
+**Check the current epoch and reward pot:**
+
+```bash
+curl -sk https://rustchain.org/epoch
+```
+
+**Check active miners (confirm yours is enrolled):**
+
+```bash
+curl -sk https://rustchain.org/api/miners
+```
+
+Look for your wallet name in the output. If it doesn't appear, your miner may have lost connectivity or failed attestation — check your logs with `clawrtc logs` or `journalctl --user -u rustchain-miner -f`.
+
+**View the block explorer:**
+
+Visit [https://rustchain.org/explorer/](https://rustchain.org/explorer/) to see all miners, epoch history, and individual wallet balances in a browser.
+
+<Note>
+  Your first reward appears after completing at least one full epoch with your miner running continuously. Wait at least 2–3 epochs (48–72 hours) before concluding that rewards are missing — attestation and settlement have inherent latency.
+</Note>
+
+## Maximizing rewards
+
+Follow these practices to earn the most RTC per epoch:
+
+- **Use older hardware.** A PowerPC G4 (2.5x), SPARC workstation (up to 2.9x), or Motorola 68K system (up to 3.0x) earns dramatically more than a modern PC (0.8x). Check [Supported Hardware](/mining/supported-hardware) for the full multiplier table.
+- **Keep the miner running continuously.** Modern CPUs (post-2019) earn a **loyalty bonus** of +15% per year of uptime, up to a +50% cap. A Ryzen 9 running for 3 years earns 1.45x instead of 1.0x. Interrupting the miner resets the uptime clock for loyalty calculations.
+- **Run on bare metal, not in a VM or container.** VMs and Docker containers receive 0x rewards. The miner must run directly on physical hardware to pass the six hardware attestation checks.
+- **Avoid modern ARM SBCs.** Raspberry Pi, generic aarch64, and cloud ARM instances receive only 0.0005x. Even a single vintage PowerPC Mac outearns a farm of Raspberry Pis.
+- **Don't use multiple miners under the same wallet name.** Install separately on each machine with a unique wallet name so each device is tracked and rewarded independently.
+
+## Bounty rewards
+
+Mining is the passive income path. For larger one-time payouts, contribute code, documentation, or security research to the RustChain bounty program.
+
+Over **25,875 RTC has been paid to 260+ contributors** through the bounty system. Bounty tiers range from 1 RTC for typo fixes up to 150 RTC for critical security discoveries:
+
+| Tier | Reward | Examples |
+|---|---|---|
+| Micro | 1–10 RTC | Typo fix, docs improvement, add a test |
+| Standard | 20–50 RTC | New feature, refactor, integration |
+| Major | 75–100 RTC | Security fix, protocol improvement |
+| Critical | 100–150 RTC | Vulnerability discovery, consensus work |
+
+Browse open bounties at [https://github.com/Scottcjn/rustchain-bounties/issues](https://github.com/Scottcjn/rustchain-bounties/issues). Comment on an issue with your wallet name to claim it, then submit a pull request. RTC is sent to your wallet once the PR is reviewed and merged.

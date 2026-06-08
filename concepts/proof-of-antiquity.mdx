@@ -1,0 +1,105 @@
+---
+title: "What Is Proof-of-Antiquity? RustChain's Consensus Explained"
+sidebarTitle: "Proof of Antiquity"
+description: "Proof-of-Antiquity is RustChain's consensus mechanism that rewards older, verified hardware with higher mining multipliers — the older your machine, the more you earn."
+---
+
+Proof-of-Antiquity (PoA) is the consensus mechanism that powers RustChain. Instead of rewarding the fastest hardware or the largest stake, PoA rewards the *oldest* hardware — and the longer you keep that hardware running, the more RTC you earn. If you're mining on a PowerPC G4, a vintage 486, or a DEC VAX, you're not running outdated equipment: you're running some of the highest-earning nodes on the entire network.
+
+## How It Works
+
+RustChain divides time into **epochs**. Each epoch spans 144 blocks at a 10-minute block time, making each epoch roughly 24 hours long. At the close of every epoch, the network distributes a reward pool of RTC to every miner that successfully attested during that period.
+
+Here's what happens inside each epoch:
+
+1. **Hardware attestation** — Your miner submits a hardware fingerprint to the attestation nodes. This fingerprint proves you're running real physical silicon, not a VM or emulator. Six independent checks run on every submission (see [Hardware Fingerprinting](/concepts/hardware-fingerprinting)).
+2. **Multiplier assignment** — Once your hardware passes attestation, the server assigns your antiquity multiplier based on your CPU's architecture, age, and rarity.
+3. **Reward distribution** — At epoch close, the pool (1.5 RTC during the genesis period) is split among all attesting miners, weighted by their multipliers. A machine with a 2.5x multiplier earns more than twice what a 1.0x modern machine earns from the same pool.
+
+The rule is **1 CPU = 1 vote**. Unlike Proof-of-Work, running more CPU threads or buying a faster chip earns you nothing extra. What matters is *what* you're running, not how hard it runs.
+
+## Why Age Matters
+
+Every other blockchain treats hardware as a liability the moment something newer ships. Proof-of-Work forces you to upgrade to the latest ASICs or fall behind. Proof-of-Stake ignores hardware entirely and rewards the largest wallet.
+
+RustChain inverts that logic. Your hardware **appreciates** as it ages, for two reasons:
+
+- **Rarity increases over time.** A working PowerPC G4 is harder to find today than it was in 2003. Running one signals genuine preservation effort.
+- **Manufacturing emissions are already spent.** Keeping an old machine running avoids the CO₂ cost of manufacturing a new one. RustChain's fleet of 16+ preserved machines draws roughly the same power as a single modern GPU rig while preventing an estimated 1,300 kg of manufacturing CO₂ and 250 kg of e-waste.
+
+The philosophical bet at RustChain's core is this: if your machine still computes, it has value. The network is designed to keep it alive.
+
+```
+2026:  Your Ryzen 9 mines at 1.0x         ░░░░░░░░░░
+2031:  Same machine, now "retro" at 1.3x  ░░░░░░░░░░░░░
+2036:  Vintage tier unlocked at 1.8x      ░░░░░░░░░░░░░░░░░░
+2041:  Ancient tier — 2.2x and climbing   ░░░░░░░░░░░░░░░░░░░░░░
+       ↑ Same hardware. Same owner. Growing rewards.
+```
+
+## Multiplier Tiers
+
+RustChain groups hardware into tiers by rarity and preservation value. Your base multiplier comes from whichever tier your CPU falls into.
+
+| Tier | Multiplier Range | Example Hardware |
+|------|-----------------|-----------------|
+| **MYTHIC** | 3.5x – 4.0x | Acorn ARM2 (4.0x), DEC VAX-11/780 (3.5x), Inmos Transputer (3.5x) |
+| **LEGENDARY** | 2.5x – 3.5x | Motorola 68000 (3.0x), Sun SPARC v7 (2.9x), SGI MIPS R4000 (2.8x) |
+| **ANCIENT** | 2.0x – 2.5x | PowerPC G4 (2.5x), PS3 Cell BE (2.2x), PowerPC G5 (2.0x) |
+| **MODERN** | 1.0x | Zen 3+, Skylake+, Coffee Lake, Alder Lake |
+| **ARM PENALTY** | 0.0005x | aarch64 NAS/SBC, Raspberry Pi 4/5, AWS Graviton |
+
+<Info>
+Multipliers are determined automatically during hardware attestation. You do not need to claim or configure a tier — the system detects your CPU and assigns the correct value.
+</Info>
+
+## Time Decay and Loyalty Bonuses
+
+Base multipliers are only the starting point. RustChain applies two dynamic adjustments that reward commitment on both ends of the age spectrum.
+
+### Time Decay for Vintage Hardware
+
+Vintage machines (more than five years old) have their bonus portion reduced by **15% per year** of chain operation. This rewards early adopters who started mining when the chain launched.
+
+The formula:
+
+```
+decay_factor    = 1.0 − (0.15 × (hardware_age − 5) / 5.0)
+final_multiplier = 1.0 + (vintage_bonus × decay_factor)
+```
+
+Even with decay applied, vintage hardware still outearns modern hardware. A PowerPC G4 with a base of 2.5x, after 24 years of hardware age, resolves to approximately **1.645x** — still well above the 1.0x modern baseline.
+
+### Loyalty Bonus for Modern Hardware
+
+Modern CPUs (five years old or newer) start at their base multiplier and earn **+15% per year of continuous uptime**, capped at +50%.
+
+| Years of Uptime | Bonus | Final Multiplier (1.0x base) |
+|-----------------|-------|------------------------------|
+| 0 | +0% | 1.0x |
+| 1 | +15% | 1.15x |
+| 2 | +30% | 1.3x |
+| 3 | +45% | 1.45x |
+| 4+ | +50% (cap) | 1.5x |
+
+Start mining today on modern hardware and the patience pays off. In four years of consistent uptime, a Ryzen 9 or a Raptor Lake Core i9 reaches **1.5x** — competitive with some vintage machines.
+
+## How Proof-of-Antiquity Compares to PoW and PoS
+
+| | Proof-of-Work | Proof-of-Stake | Proof-of-Antiquity |
+|---|---|---|---|
+| **What earns rewards** | Raw hash rate | Token holdings | Hardware age + rarity |
+| **Hardware advantage** | Newest ASICs win | Hardware irrelevant | Oldest hardware wins |
+| **Energy use** | Very high | Very low | Low (vintage hardware) |
+| **Anti-spam** | Hash difficulty | Stake requirement | AI fingerprinting |
+| **Long-term dynamic** | Hardware depreciates | Wealth compounds | Hardware appreciates |
+
+Where Proof-of-Work turns old hardware into scrap and Proof-of-Stake rewards the already wealthy, Proof-of-Antiquity turns the passage of time into a mining advantage. Every machine on the network gets older every day — and with age comes higher rewards.
+
+## VM and Emulator Submissions
+
+Attempting to mine from a virtual machine, Docker container, cloud instance, or software emulator (including SheepShaver or QEMU pretending to be vintage hardware) is detected by the hardware fingerprinting system.
+
+<Warning>
+VMs and emulators are flagged at **0x** — they receive no rewards. Attempting to spoof hardware fingerprints results in permanent blacklisting of the wallet and machine identifier. Mine on bare metal only.
+</Warning>

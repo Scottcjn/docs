@@ -1,0 +1,232 @@
+---
+title: "Frequently Asked Questions About RustChain"
+sidebarTitle: "FAQ"
+description: "Answers to the most common questions about RustChain mining, RTC token value, hardware requirements, Proof-of-Antiquity, and the wRTC Solana bridge."
+---
+
+Find answers to the most common questions about RustChain mining, the RTC token, and hardware compatibility.
+
+## Mining
+
+<AccordionGroup>
+
+  <Accordion title="Do I need special hardware?">
+    No. Any computer that runs Python 3.8 or later can mine RTC — Linux, macOS, Windows, PowerPC Macs, SPARC workstations, Raspberry Pis, and more are all supported.
+
+    That said, **older hardware earns more.** RustChain's Proof-of-Antiquity consensus assigns multipliers based on how rare and vintage your hardware is. A modern x86\_64 desktop mines at a 0.8x baseline, while a PowerBook G4 mines at 2.5x and a Motorola 68000 machine mines at 3.0x.
+
+    Install the miner on whatever machine you have today — all hardware eventually becomes vintage, and your multiplier grows with age.
+  </Accordion>
+
+  <Accordion title="Can I mine on a Raspberry Pi?">
+    Yes, but expect a **0.0005x multiplier** — a steep penalty by design.
+
+    ARM single-board computers like the Raspberry Pi are inexpensive and easy to acquire in bulk, which makes them a prime vector for farming attacks. The 0.0005x penalty makes it economically unviable to run large ARM farms while still allowing genuine Pi owners to participate.
+
+    If you have a Pi, connect it — but do not expect significant rewards compared to vintage x86 or PowerPC hardware.
+  </Accordion>
+
+  <Accordion title="Can I mine in a VM or container?">
+    No. RustChain's hardware fingerprinting actively detects and penalizes virtual environments.
+
+    The attestation system runs six checks per machine — oscillator drift, cache timing, SIMD identity, thermal entropy, instruction jitter, and anti-emulation detection. VMs (VMware, VirtualBox, QEMU, Hyper-V, WSL), Docker containers, LXC, and Kubernetes environments all trigger these checks and receive approximately **1 billionth** of normal rewards.
+
+    Run the miner on bare metal only.
+  </Accordion>
+
+  <Accordion title="How long until I get my first reward?">
+    Wait at least **one full epoch (~24 hours)** after enrollment before expecting rewards.
+
+    Epochs are \~10-minute windows during which 1.5 RTC is distributed to all attesting miners. However, a newly enrolled miner typically needs to complete at least one full daily epoch cycle to appear in the reward distribution. Do not treat a zero balance in the first 20–30 minutes as a failure — check again after a few epochs have settled.
+
+    Confirm your miner is active on the network:
+
+    ```bash
+    curl -sk https://rustchain.org/api/miners
+    ```
+  </Accordion>
+
+  <Accordion title="Can I run multiple miners?">
+    Yes. Run one miner per physical machine, each with a **unique wallet name** on different hardware.
+
+    Each unique hardware device earns one consensus participation slot per epoch. Running two instances on the same machine does not increase your rewards — it just causes conflicts. Spread across multiple physical machines (each with its own `--wallet` name) and you earn one slot's worth of rewards per machine.
+  </Accordion>
+
+</AccordionGroup>
+
+## Rewards & token
+
+<AccordionGroup>
+
+  <Accordion title="What is RTC worth?">
+    The internal reference rate used for bounty accounting is approximately **$0.10–$0.15 USD per RTC**, depending on the current holder milestone.
+
+    <Callout type="warning">
+      This is an **internal reference rate**, not a market price or a guarantee of convertibility. The wRTC pool on Solana is early-stage with thin liquidity — treat it as experimental. Always check the live rate at [`/api/tokenomics`](https://rustchain.org/api/tokenomics) and the [DexScreener chart](https://dexscreener.com/solana/8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb) for current market conditions.
+    </Callout>
+  </Accordion>
+
+  <Accordion title="What is the total RTC supply?">
+    **8,388,608 RTC** — exactly 2²³. This cap is fixed forever and enforced by consensus.
+
+    Supply distribution:
+
+    | Allocation | Share | RTC |
+    |------------|-------|-----|
+    | Block mining rewards | 94% | 7,885,292 |
+    | Founders | 1.5% | 125,829 |
+    | Dev fund | 1.5% | 125,829 |
+    | Team / bounties | 1.5% | 125,829 |
+    | Community | 1.5% | 125,829 |
+
+    Premine wallets have a one-year on-chain unlock delay. There was no VC pre-sale and no private allocation.
+  </Accordion>
+
+  <Accordion title="How do I withdraw or trade RTC?">
+    Use the **wRTC Solana bridge** to convert native RTC into wrapped RTC (wRTC) on Solana, where you can trade it on DEXs like Raydium.
+
+    | Resource | Link |
+    |----------|------|
+    | Bridge | [bottube.ai/bridge/wrtc](https://bottube.ai/bridge/wrtc) |
+    | Swap (Raydium) | [Raydium DEX](https://raydium.io/swap/?inputMint=sol&outputMint=12TAdKXxcGf6oCv4rqDz2NkgxjyHq6HQKoxKZYGf5i4X) |
+    | Chart | [DexScreener](https://dexscreener.com/solana/8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb) |
+    | Guide | [wRTC Overview](/bridge/wrtc-overview) |
+
+    The bridge is live, but the liquidity pool is early-stage. Treat large trades with caution.
+  </Accordion>
+
+  <Accordion title="Why did my multiplier change?">
+    Two forces move your multiplier over time:
+
+    - **Time decay on vintage hardware:** Exceptionally old or rare machines may see small adjustments as the scoring model evolves to reflect current preservation value.
+    - **Loyalty bonus on modern hardware:** Modern hardware (e.g., a current-generation x86 or Apple Silicon machine) starts at its base multiplier and accumulates a loyalty bonus the longer it stays enrolled and active. Over years, today's modern hardware crosses into "retro," then "vintage," then "ancient" tiers — and the multiplier climbs accordingly.
+
+    Your hardware's value in RustChain only increases with time. The longer you keep a machine running, the more it earns.
+  </Accordion>
+
+</AccordionGroup>
+
+## Hardware & multipliers
+
+<AccordionGroup>
+
+  <Accordion title="What multiplier does my hardware get?">
+    See the full multiplier reference at [/concepts/multipliers](/concepts/multipliers).
+
+    Quick reference for common hardware:
+
+    | Hardware | Multiplier | Tier |
+    |----------|-----------|------|
+    | Acorn ARM2 (1987) | 4.0x | Mythic |
+    | DEC VAX-11/780 (1977) | 3.5x | Mythic |
+    | Motorola 68000 (1979) | 3.0x | Legendary |
+    | Sun SPARC (1987) | 2.9x | Legendary |
+    | PowerPC G4 (2003) | 2.5x | Ancient |
+    | PS3 Cell BE (2006) | 2.2x | Ancient |
+    | PowerPC G5 | 2.0x | Rare |
+    | IBM POWER8 | 1.5x | Rare |
+    | RISC-V | 1.4x | Exotic |
+    | Apple Silicon M1 (2020) | 1.2x | Modern |
+    | Modern x86\_64 | 0.8x | Common |
+    | ARM SBC / Raspberry Pi | 0.0005x | Penalized |
+    | VM or emulator | 0x | Flagged |
+  </Accordion>
+
+  <Accordion title="Why does my MacBook M1 get only 1.2x?">
+    Because it is modern hardware — and that is not a problem.
+
+    The M1 shipped in 2020. It is fast, efficient, and welcome on the network. But RustChain's multipliers reward **preservation and rarity**, not raw performance. The M1 is neither rare nor vintage yet.
+
+    Here is the good news: **wait.** In 5 years, the M1 crosses into retro territory. In 10 years, vintage. In 20 years, it is a museum piece with a multiplier to match. Start mining now and your multiplier grows automatically — no action required. The same machine, the same owner, climbing rewards over time.
+  </Accordion>
+
+  <Accordion title="What is the highest multiplier possible?">
+    **4.0x** — awarded to the **Acorn ARM2 (1987)**, the CPU where ARM began.
+
+    Other top-tier machines:
+
+    | Hardware | Multiplier |
+    |----------|-----------|
+    | Acorn ARM2 (1987) | 4.0x |
+    | DEC VAX-11/780 (1977) | 3.5x |
+    | Inmos Transputer (1984) | 3.5x |
+    | Motorola 68000 (1979) | 3.0x |
+    | Sun SPARC (1987) | 2.9x |
+
+    If you have one of these machines in working condition, plug it in. It is the rarest iron on the network.
+  </Accordion>
+
+  <Accordion title="Will my hardware's multiplier increase over time?">
+    Yes — for all hardware, guaranteed.
+
+    Modern hardware accumulates a **loyalty bonus** while it is enrolled and actively mining. That bonus compounds as the hardware ages through RustChain's tiers: Modern → Uncommon → Rare → Ancient → Legendary → Mythic.
+
+    You do not need to do anything. Keep the machine running, keep the miner active, and let time do the work. RustChain is the only network where your hardware **appreciates** instead of depreciating.
+  </Accordion>
+
+</AccordionGroup>
+
+## Testnet & development
+
+<AccordionGroup>
+
+  <Accordion title="Is there a testnet?">
+    Yes. RustChain has a testnet environment with a faucet that dispenses **0.5 test RTC per 24 hours per IP address**.
+
+    Use the testnet to experiment with wallet operations, test integrations, and try the API without spending real RTC.
+  </Accordion>
+
+  <Accordion title="How do I get testnet RTC?">
+    Send a `POST` request to the `/faucet/drip` endpoint with your wallet address:
+
+    ```bash
+    curl -s -X POST https://rustchain.org/faucet/drip \
+      -H "Content-Type: application/json" \
+      -d '{"wallet": "YOUR_WALLET_ADDRESS"}'
+    ```
+
+    A successful response looks like:
+
+    ```json
+    {
+      "ok": true,
+      "amount": 0.5,
+      "wallet": "YOUR_WALLET_ADDRESS",
+      "next_available": "2026-03-09T14:20:00"
+    }
+    ```
+
+    The faucet enforces a rate limit of 0.5 RTC per 24 hours per IP. If you hit the limit, the response includes a `next_available` timestamp telling you when you can request again.
+  </Accordion>
+
+</AccordionGroup>
+
+## General
+
+<AccordionGroup>
+
+  <Accordion title="Is RustChain open source?">
+    Yes. RustChain is licensed under the **Apache 2.0 license**.
+
+    Browse the source, open issues, and submit pull requests at [github.com/Scottcjn/Rustchain](https://github.com/Scottcjn/Rustchain).
+
+    Contributions earn RTC bounties. See the [bounty board](https://github.com/Scottcjn/rustchain-bounties/issues) for open tasks ranging from 1 RTC (documentation fixes) to 150 RTC (critical vulnerability discoveries).
+  </Accordion>
+
+  <Accordion title="Is there VC funding?">
+    **$0 in VC funding.** RustChain was built on pawn shop hardware with no private allocation and no investor pre-sale.
+
+    The founding fleet includes machines like `pawnshop_g4_115` and `dual-g4-125` — PowerPC Macs sourced from secondhand shops. The 6% premine is split evenly across four founder wallets, all with a one-year on-chain unlock delay.
+
+    This is what crypto looked like before the money showed up.
+  </Accordion>
+
+  <Accordion title="What is BCOS?">
+    **BCOS** stands for **Blockchain-Certified Open Source** — a verification system that issues on-chain certificates to open-source projects.
+
+    RustChain's BCOS system provides a tamper-evident, blockchain-anchored record that a given repository and release are genuine open-source. Think of it as a cryptographic quality seal for open-source software.
+
+    Browse certified projects at [rustchain.org/bcos](https://rustchain.org/bcos/). As of the latest count, 44 certificates have been issued.
+  </Accordion>
+
+</AccordionGroup>

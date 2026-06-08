@@ -1,0 +1,120 @@
+---
+title: "RustChain REST API Reference Overview"
+sidebarTitle: "Overview"
+description: "RustChain's public REST API lets you check node health, query epochs, manage wallets, submit attestations, and list miners. Base URL: https://rustchain.org"
+---
+
+The RustChain REST API provides programmatic access to the blockchain node, wallet operations, hardware attestation, and miner registry. All endpoints use HTTPS and return JSON.
+
+## Base URL
+
+All API requests go to:
+
+```
+https://rustchain.org
+```
+
+Verify the node is reachable with a quick health check:
+
+```bash
+curl -fsS https://rustchain.org/health | jq .
+```
+
+```json
+{
+  "ok": true,
+  "version": "2.2.1-rip200",
+  "uptime_s": 18728,
+  "db_rw": true,
+  "backup_age_hours": 6.75,
+  "tip_age_slots": 0
+}
+```
+
+## Available Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Node health and version |
+| `/epoch` | GET | Current epoch info |
+| `/api/miners` | GET | List active miners |
+| `/wallet/balance` | GET | Check RTC balance |
+| `/wallet/history` | GET | Transaction history |
+| `/wallet/transfer/signed` | POST | Transfer RTC (signed) |
+| `/attest/submit` | POST | Submit hardware attestation |
+
+## Rate Limits
+
+RustChain enforces per-endpoint rate limits to keep the network stable:
+
+| Endpoint group | Limit |
+|----------------|-------|
+| Public endpoints (`/health`, `/epoch`, `/api/miners`, `/wallet/balance`, `/wallet/history`) | 100 requests per minute |
+| Attestation (`POST /attest/submit`) | 1 request per 10 minutes per miner |
+| Transfers (`POST /wallet/transfer/signed`) | 10 requests per minute per wallet |
+
+When you exceed a limit, the API returns a `RATE_LIMITED` error. Back off and retry after the window resets.
+
+## Error Codes
+
+All error responses return a JSON body containing an `error` field with one of the following codes:
+
+| Code | Meaning |
+|------|---------|
+| `VM_DETECTED` | Attestation failed — a virtual machine or hypervisor was detected instead of real hardware |
+| `INVALID_SIGNATURE` | Ed25519 signature verification failed; check that you signed the correct canonical payload |
+| `INSUFFICIENT_BALANCE` | The sending wallet does not hold enough RTC to complete the transfer |
+| `MINER_NOT_FOUND` | The requested miner ID or wallet address does not exist on the network |
+| `RATE_LIMITED` | You have exceeded the request rate limit for this endpoint |
+
+### Example error response
+
+```json
+{
+  "success": false,
+  "error": "VM_DETECTED",
+  "check_failed": "behavioral_heuristics",
+  "detail": "Hypervisor signature detected in CPUID"
+}
+```
+
+## TLS / Certificate Notes
+
+The public `https://rustchain.org` hostname uses a browser-trusted TLS certificate. You should always use strict TLS verification when calling it from production code:
+
+```python
+import requests
+
+# Correct — strict verification (default)
+resp = requests.get("https://rustchain.org/health")
+```
+
+<Warning>
+Never disable TLS verification (`verify=False`) when connecting to `https://rustchain.org`. Only bypass verification when connecting to a **local development node** that uses a self-signed certificate, and only after explicitly trusting that certificate.
+</Warning>
+
+If you run a local development node with a self-signed certificate, pass its certificate path explicitly instead of disabling verification:
+
+```python
+import requests
+
+# Local dev node only — pin the cert rather than skipping verification
+resp = requests.get("https://localhost/health", verify="/path/to/rustchain-dev.crt")
+```
+
+## Explore the API
+
+<CardGroup cols={2}>
+  <Card title="Health & Epoch" icon="heart-pulse" href="/api/health">
+    Check node status, uptime, and current epoch details.
+  </Card>
+  <Card title="Wallet" icon="wallet" href="/api/wallet">
+    Check balances, view transaction history, and send signed RTC transfers.
+  </Card>
+  <Card title="Attestation" icon="microchip" href="/api/attestation">
+    Submit hardware fingerprints to enroll in epoch rewards.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/api/python-sdk">
+    Ready-to-run Python examples for every endpoint.
+  </Card>
+</CardGroup>

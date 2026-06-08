@@ -1,0 +1,110 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "RustChain",
+  "theme": "aspen",
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#e17e3a",
+    "light": "#694234",
+    "dark": "#1d1c2c"
+  },
+  "fonts": {
+    "heading": {
+      "family": "VT323"
+    },
+    "body": {
+      "family": "IBM Plex Mono"
+    }
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Scottcjn/Rustchain"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "wallet-setup"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/proof-of-antiquity",
+              "concepts/hardware-fingerprinting",
+              "concepts/multipliers",
+              "concepts/rtc-token"
+            ]
+          },
+          {
+            "group": "Mining",
+            "pages": [
+              "mining/install",
+              "mining/supported-hardware",
+              "mining/manage-miner",
+              "mining/rewards"
+            ]
+          },
+          {
+            "group": "Agent Economy",
+            "pages": [
+              "agents/overview",
+              "agents/payments",
+              "agents/bottube"
+            ]
+          },
+          {
+            "group": "Solana Bridge",
+            "pages": [
+              "bridge/wrtc-overview",
+              "bridge/swap"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": [
+              "troubleshooting",
+              "faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/health",
+              "api/miners",
+              "api/wallet",
+              "api/attestation"
+            ]
+          },
+          {
+            "group": "SDK",
+            "pages": [
+              "api/python-sdk",
+              "api/agent-sdk"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

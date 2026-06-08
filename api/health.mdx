@@ -1,0 +1,117 @@
+---
+title: "GET /health and GET /epoch — RustChain Node Status API"
+sidebarTitle: "Health & Epoch"
+description: "Check RustChain node health with GET /health and query current epoch details with GET /epoch. Both are public, unauthenticated endpoints."
+---
+
+Use the `/health` and `/epoch` endpoints to check node status and get current blockchain state.
+
+---
+
+## GET /health
+
+`GET /health` returns a snapshot of your node's operational status. Call this endpoint to confirm the node is reachable, its database is writable, and it is in sync with the chain tip. No authentication is required.
+
+```bash
+curl -fsS https://rustchain.org/health | jq .
+```
+
+**Response**
+
+```json
+{
+  "ok": true,
+  "version": "2.2.1-rip200",
+  "uptime_s": 18728,
+  "db_rw": true,
+  "backup_age_hours": 6.75,
+  "tip_age_slots": 0
+}
+```
+
+<ResponseField name="ok" type="boolean" required>
+  `true` when the node is healthy and fully operational.
+</ResponseField>
+
+<ResponseField name="version" type="string" required>
+  The running protocol version string (e.g. `"2.2.1-rip200"`).
+</ResponseField>
+
+<ResponseField name="uptime_s" type="integer" required>
+  Seconds elapsed since the node process started.
+</ResponseField>
+
+<ResponseField name="db_rw" type="boolean" required>
+  `true` when the node's database is mounted in read-write mode. A `false` value
+  indicates a storage fault — the node will not accept new blocks or transactions.
+</ResponseField>
+
+<ResponseField name="backup_age_hours" type="float" required>
+  Hours since the last successful database backup snapshot.
+</ResponseField>
+
+<ResponseField name="tip_age_slots" type="integer" required>
+  How many slots behind the current chain tip this node is. `0` means fully
+  synced. Increasing values indicate the node is catching up or has stalled.
+</ResponseField>
+
+---
+
+## GET /epoch
+
+`GET /epoch` returns the current epoch number, the active slot, and reward
+accounting details for the running epoch. Use this endpoint to understand where
+you are in the block schedule and how many miners are competing for the epoch
+pot.
+
+```bash
+curl -fsS https://rustchain.org/epoch | jq .
+```
+
+**Response**
+
+```json
+{
+  "epoch": 62,
+  "slot": 9010,
+  "blocks_per_epoch": 144,
+  "epoch_pot": 1.5,
+  "enrolled_miners": 2,
+  "total_supply_rtc": 8388608
+}
+```
+
+<ResponseField name="epoch" type="integer" required>
+  The current epoch number, incremented once every 144 blocks.
+</ResponseField>
+
+<ResponseField name="slot" type="integer" required>
+  The current slot number within the current epoch. Resets to `0` at the start
+  of each new epoch.
+</ResponseField>
+
+<ResponseField name="blocks_per_epoch" type="integer" required>
+  The fixed number of slots that make up one epoch. This value is always `144`,
+  which corresponds to approximately 24 hours of block time.
+</ResponseField>
+
+<ResponseField name="epoch_pot" type="float" required>
+  The total amount of RTC to be distributed to enrolled miners at the end of the
+  current epoch.
+</ResponseField>
+
+<ResponseField name="enrolled_miners" type="integer" required>
+  The number of miners that have submitted a valid hardware attestation in the
+  current epoch and are eligible for rewards.
+</ResponseField>
+
+<ResponseField name="total_supply_rtc" type="integer" required>
+  The total RTC token supply currently in circulation, expressed as a whole
+  number of RTC.
+</ResponseField>
+
+<Note>
+  One epoch equals 144 blocks, which at normal block cadence is approximately
+  24 hours. You can calculate your position within the current epoch as
+  `slot / blocks_per_epoch`.
+</Note>

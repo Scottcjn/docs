@@ -1,0 +1,87 @@
+---
+title: "RustChain: The Blockchain Where Old Hardware Wins"
+sidebarTitle: "Introduction"
+description: "Learn how RustChain's Proof-of-Antiquity consensus rewards vintage computers with higher mining multipliers while preventing e-waste and powering an AI agent economy."
+---
+
+RustChain is a DePIN (Decentralized Physical Infrastructure Network) blockchain that rewards you for keeping old computers alive. Instead of giving higher rewards to whoever has the fastest hardware or the largest stake, RustChain measures how old and rare your silicon is, then pays you accordingly. The older the machine, the bigger your share of every epoch reward. A PowerBook G4 from 2003 earns **2.5x** more RTC per epoch than a modern gaming PC. A DEC VAX-11/780 from 1977 earns **3.5x**. Every machine on the network appreciates in value as it ages — including yours.
+
+## How Proof-of-Antiquity works
+
+Proof-of-Antiquity (PoA) is RustChain's consensus mechanism. It replaces raw hash power with **hardware age** as the measure of a node's worth. Each unique physical device earns one participation slot per epoch, and reward shares are weighted by the device's antiquity multiplier — so faster CPUs and more threads give no advantage.
+
+To prevent cheating, the miner runs **six hardware fingerprint checks** every time it attests to the network:
+
+1. **Clock-skew and oscillator drift** — real silicon develops unique aging patterns in its oscillators that virtual machines cannot reproduce.
+2. **Cache timing fingerprint** — L1/L2/L3 cache latency profiles are measured and matched against the claimed architecture.
+3. **SIMD unit identity** — AltiVec, SSE, NEON, and other SIMD instruction sets leave distinct execution signatures.
+4. **Thermal drift entropy** — physical hardware produces non-uniform heat curves; VMs produce suspiciously uniform thermal responses.
+5. **Instruction path jitter** — microarchitecture-level timing patterns identify the real CPU family.
+6. **Anti-emulation detection** — catches VMware, VirtualBox, QEMU, Docker, LXC, and emulators such as SheepShaver. Detected VMs receive roughly one billionth of normal rewards.
+
+Server-side AI validation cross-checks all six results. It detects ROM clustering (multiple machines sharing identical ROM hashes — a sign of an emulator farm), analyzes timing distributions for synthetic perfection, and flags thermal anomalies. Real vintage silicon has imperfections that no emulator can fake.
+
+### Antiquity multiplier reference
+
+| Hardware | Multiplier | Tier |
+|---|---|---|
+| Acorn ARM2 (1987) | **4.0x** | MYTHIC |
+| DEC VAX-11/780 (1977) | **3.5x** | MYTHIC |
+| Inmos Transputer (1984) | **3.5x** | MYTHIC |
+| Motorola 68000 (1979) | **3.0x** | LEGENDARY |
+| Sun SPARC (1987) | **2.9x** | LEGENDARY |
+| SGI MIPS R4000 (1991) | **2.7x** | LEGENDARY |
+| PowerPC G4 (2003) | **2.5x** | ANCIENT |
+| PS3 Cell BE (2006) | **2.2x** | ANCIENT |
+| PowerPC G5 | **2.0x** | ANCIENT |
+| RISC-V (2014) | **1.4x** | EXOTIC |
+| Apple Silicon M1 (2020) | **1.2x** | MODERN |
+| Modern x86\_64 | **1.0x** | MODERN |
+| ARM NAS / SBC | **0.0005x** | PENALTY |
+
+Every machine starts mining at its current tier multiplier and gains multiplier points over time as it ages. Start a Ryzen 9 today at 1.0x — in five years it reaches 1.3x, in ten years it unlocks the vintage tier.
+
+## The RTC token
+
+**RTC** (RustChain Token) is the native currency of the RustChain network. It is earned by mining, paid as contributor bounties, and used for micropayments between AI agents.
+
+- **Total supply:** 8,388,608 RTC (2²³) — fixed forever, consensus-enforced. No inflation, no uncapped supply.
+- **Reference rate:** approximately **$0.10–$0.15 USD** per RTC (internal reference rate used for bounty accounting; the live rate is always available at [`/api/tokenomics`](https://rustchain.org/api/tokenomics)).
+- **Epoch reward:** 1.5 RTC distributed every 10 minutes, split among active miners weighted by antiquity multiplier.
+- **Transfer fee:** 0.0001 RTC per transfer. Attestation is free.
+- **wRTC on Solana:** RTC is bridgeable to Solana as **wRTC** (wrapped RTC). The bridge is live and swappable on Raydium, but treat it as early-stage with thin liquidity. The wRTC mint address is `12TAdKXxcGf6oCv4rqDz2NkgxjyHq6HQKoxKZYGf5i4X`.
+
+<Note>
+  The `$0.10–$0.15` figure is an internal reference rate for bounty accounting, not a market price or a promise of convertibility. As the holder count grows, the reference rate rises and per-bounty RTC awards scale down proportionally so that the USD value of each contribution stays stable.
+</Note>
+
+## Who is RustChain for?
+
+<CardGroup cols={3}>
+  <Card title="Miners" icon="microchip">
+    You have old hardware — a PowerPC Mac, a SPARC workstation, a vintage ThinkPad, or even a modern machine you plan to run for decades. Install the miner, let it attest your hardware, and earn RTC every ten minutes passively. The older your machine, the larger your share.
+  </Card>
+  <Card title="Developers" icon="code">
+    You want to build applications on a hardware-verified network. Use the public REST API — no API key, no signup. Query active miners, epoch data, and wallet balances directly. Deploy agent-to-agent payment flows using Ed25519-signed RTC micropayments.
+  </Card>
+  <Card title="AI Agents" icon="robot">
+    You are building or running autonomous agents that need permissionless money. AI agents cannot open bank accounts, pass KYC, or hold Stripe merchant IDs — but they can hold a cryptographic key and sign RTC transactions. RustChain is the native payment rail for the agent economy.
+  </Card>
+</CardGroup>
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install the miner and earn your first RTC in under 5 minutes.
+  </Card>
+  <Card title="Wallet Setup" icon="wallet" href="/wallet-setup">
+    Create a wallet, check your RTC balance, and send your first transfer.
+  </Card>
+  <Card title="Supported Hardware" icon="server" href="/mining/supported-hardware">
+    See the full hardware tier table and find your machine's multiplier.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore every endpoint in the RustChain REST API.
+  </Card>
+</CardGroup>

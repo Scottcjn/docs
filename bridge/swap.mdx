@@ -1,0 +1,97 @@
+---
+title: "Bridge RTC to Solana: How to Swap RTC for wRTC"
+sidebarTitle: "Swap"
+description: "Learn how to convert native RTC tokens to wRTC on Solana and back. Includes step-by-step bridge instructions and key safety checks before swapping."
+---
+
+The RustChain-Solana bridge converts your native RTC to wRTC (Wrapped RTC on Solana) so you can access Solana DeFi, DEX trading, and cross-chain payments. This guide walks you through the full swap process, from pre-flight checks to confirming your wRTC on the Solana side.
+
+<Warning>
+  This bridge is early-stage. Liquidity is thin. Only swap amounts you can afford to
+  lose value on in a thin market. Large orders will move the price significantly —
+  check pool depth before proceeding.
+</Warning>
+
+## Before You Swap
+
+Work through this checklist before initiating a bridge request:
+
+- [ ] **You have a native RTC balance.** Check your balance: `curl -fsS "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET_NAME"`
+- [ ] **You have a Solana wallet.** Phantom, Backpack, and Solflare all work. Have your Solana wallet address ready (base58, ≥32 characters).
+- [ ] **You understand the liquidity risk.** The wRTC pool is thin. Your swap may settle at a worse price than you expect. Do not swap more than you are comfortable with.
+- [ ] **Minimum swap: 1 RTC. Maximum swap: 10,000 RTC per transaction.**
+- [ ] **Your RTC address starts with `RTC`.** The bridge requires a verified RustChain `RTC...` wallet address, not a miner ID.
+
+## Bridge Instructions
+
+### Step 1 — Confirm your RTC balance
+
+```bash
+curl -fsS "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET_NAME"
+```
+
+Note the `balance` field in the response. Make sure you have enough RTC for the amount you want to bridge, plus the 0.0001 RTC transfer fee.
+
+### Step 2 — Initiate the bridge lock
+
+Submit a lock request to the bridge API with your RTC wallet address, the amount, your target Solana wallet, and the RustChain transaction hash of the funds you are locking:
+
+```json
+POST /bridge/lock
+
+{
+  "sender_wallet":  "my-rtc-wallet",
+  "amount":         100.0,
+  "target_chain":   "solana",
+  "target_wallet":  "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
+  "tx_hash":        "your-rustchain-lock-tx-hash"
+}
+```
+
+The bridge returns a `lock_id` and sets the state to `requested`. Keep the `lock_id` — you'll use it to track the status of your swap.
+
+### Step 3 — Wait for proof confirmation
+
+In Phase 1, a bridge admin reviews your transaction proof before minting wRTC. Check your lock status using the `lock_id`:
+
+```bash
+curl -fsS "https://rustchain.org/bridge/status/YOUR_LOCK_ID"
+```
+
+The state moves from `requested` → `confirmed` → `complete` as the bridge processes your swap.
+
+### Step 4 — Confirm wRTC in your Solana wallet
+
+Once the state reaches `complete`, open your Solana wallet and verify the wRTC SPL token balance. You can also verify on-chain using the [DexScreener chart](https://dexscreener.com/solana/8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb) or the [Raydium swap interface](https://raydium.io/swap/?inputMint=sol&outputMint=12TAdKXxcGf6oCv4rqDz2NkgxjyHq6HQKoxKZYGf5i4X).
+
+## Converting wRTC Back to RTC
+
+To reverse the bridge and recover native RTC:
+
+1. **Burn your wRTC** on the Solana side using the bridge interface at [bottube.ai/bridge/wrtc](https://bottube.ai/bridge/wrtc).
+2. **Submit the burn transaction hash** to the bridge release endpoint.
+3. **Wait for confirmation.** The bridge verifies the burn on Solana and releases the locked RTC back to your RustChain wallet.
+4. **Confirm your RTC balance** with the balance endpoint above.
+
+The reverse process follows the same confirmation flow as the forward bridge. Allow time for both chains to confirm before contacting support.
+
+## Checking wRTC Holders
+
+The RustChain repository maintains a transparent record of wRTC holder data in the `wrtc_holders/` directory. You can inspect this directory in the [Rustchain GitHub repo](https://github.com/Scottcjn/Rustchain/tree/main/wrtc_holders) to see historical holder snapshots and supply data.
+
+## Bridge Lock States
+
+| State | Meaning |
+|-------|---------|
+| `requested` | Lock received; awaiting admin proof confirmation |
+| `confirmed` | Proof confirmed; bridge is preparing to mint wRTC |
+| `releasing` | Admin is minting wRTC on Solana |
+| `complete` | wRTC minted and delivered to your Solana wallet |
+| `failed` | Lock failed; contact support with your `lock_id` |
+| `refunded` | RTC returned to your RustChain wallet |
+
+<Info>
+  For questions about bridge status, swap issues, or to report a stuck lock, visit
+  [https://rustchain.org](https://rustchain.org) or open an issue on the
+  [RustChain bounty board](https://github.com/Scottcjn/rustchain-bounties/issues).
+</Info>

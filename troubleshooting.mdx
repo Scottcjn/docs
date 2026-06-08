@@ -1,0 +1,273 @@
+---
+title: "Troubleshoot Your RustChain Miner and Wallet"
+sidebarTitle: "Troubleshooting"
+description: "Fix common RustChain miner issues: connection failures, zero balance, attestation rejections, wallet not found errors, and service startup problems."
+---
+
+Before changing any configuration, run these quick diagnostic commands to identify the problem.
+
+## Quick diagnostics
+
+```bash
+# Confirm the public node is reachable
+curl -sk https://rustchain.org/health
+
+# Confirm the epoch endpoint responds
+curl -sk https://rustchain.org/epoch
+
+# Check your wallet balance with the exact wallet name from install
+curl -sk "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET_NAME"
+
+# Check whether active miners are visible
+curl -sk https://rustchain.org/api/miners
+```
+
+<Callout type="info">
+  The RustChain public node uses a self-signed TLS certificate. Use `curl -sk` (or `-k` alone) in all manual commands. The miner handles this internally.
+</Callout>
+
+## Common issues
+
+<AccordionGroup>
+
+  <Accordion title="Wallet not found">
+    This error usually means the wallet name you are checking does not match the one created during installation.
+
+    **Fix it:**
+
+    1. Find the wallet name that was printed by the installer or passed via `--wallet`. Check your terminal history or the miner config at `~/.rustchain/`.
+    2. Use the **exact** spelling and capitalization when querying your balance — the name is case-sensitive.
+    3. If you installed manually (not via the one-liner), open your local miner configuration and confirm the `miner_id` field.
+    4. If your miner just started, wait at least one full epoch before assuming the wallet has no rewards.
+
+    **Check your balance with the exact name:**
+
+    ```bash
+    curl -sk "https://rustchain.org/wallet/balance?miner_id=YOUR_EXACT_WALLET_NAME"
+    ```
+
+    **Reinstall with an explicit wallet name:**
+
+    If you need to start fresh with a known wallet name, run:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash -s -- --wallet my-miner-wallet
+    ```
+  </Accordion>
+
+  <Accordion title="Balance is zero">
+    A zero balance does not always mean something is wrong — the miner may not have completed a full epoch yet.
+
+    **Fix it:**
+
+    1. **Wait one full epoch.** Rewards settle every \~10 minutes. New miners should wait at least 2–3 epochs (20–30 minutes) before treating a zero balance as a failure.
+    2. **Confirm your `miner_id` matches.** Query the exact wallet name from your install:
+
+       ```bash
+       curl -sk "https://rustchain.org/wallet/balance?miner_id=YOUR_EXACT_WALLET_NAME"
+       ```
+
+    3. **Confirm the miner is running.** Check your service status:
+
+       ```bash
+       # Linux
+       systemctl --user status rustchain-miner
+
+       # macOS
+       launchctl list | grep rustchain
+       ```
+
+    4. **Confirm your miner appears in the active miner list:**
+
+       ```bash
+       curl -sk https://rustchain.org/api/miners
+       ```
+
+       If your wallet name is absent from that list, the network has not seen your miner yet. Check the logs for attestation errors.
+  </Accordion>
+
+  <Accordion title="Connection refused / bootstrap errors">
+    Connection failures typically come from network reachability, a firewall or VPN blocking outbound traffic, or a misconfigured custom node URL.
+
+    **Fix it:**
+
+    1. **Confirm the public node responds:**
+
+       ```bash
+       curl -sk https://rustchain.org/health
+       ```
+
+       A healthy response looks like `{"ok": true, ...}`. If this fails, the issue is between your machine and `rustchain.org`.
+
+    2. **Check your internet connection** outside of RustChain.
+
+    3. **Disable VPN or proxy temporarily.** If you use a VPN, corporate proxy, or firewall, add an outbound HTTPS exception for `https://rustchain.org`.
+
+    4. **Verify your custom node URL** (if you configured one). Check the scheme (`https://`), hostname, and port are correct.
+
+    5. **Check the miner logs** for the exact node URL being dialed:
+
+       ```bash
+       # Linux (systemd)
+       journalctl --user -u rustchain-miner -n 50
+
+       # macOS (launchd)
+       tail -n 50 ~/.rustchain/miner.log
+       ```
+
+    <Callout type="info">
+      RustChain miners make **outbound** connections only. You do not need to open any inbound ports for the basic miner to function.
+    </Callout>
+  </Accordion>
+
+  <Accordion title="Attestation rejected">
+    Attestation rejection means the network's hardware fingerprinting checks determined your machine is **not bare metal**.
+
+    RustChain runs six hardware checks to detect virtual environments:
+
+    - Clock-skew and oscillator drift
+    - Cache timing fingerprint
+    - SIMD unit identity
+    - Thermal drift entropy
+    - Instruction path jitter
+    - Anti-emulation detection (CPUID hypervisor bit and related signals)
+
+    **Common causes:**
+
+    | Cause | Detail |
+    |-------|--------|
+    | Running inside a VM | VMware, VirtualBox, QEMU, Hyper-V, WSL — all trigger detection |
+    | Docker / LXC / Kubernetes container | Container runtimes are caught at attestation |
+    | CPUID hypervisor bit set | Some bare-metal hosts expose this bit in firmware; disable it in BIOS/UEFI |
+    | Emulator (e.g., SheepShaver pretending to be a G4) | ROM clustering and timing checks catch emulator farms |
+
+    **Fix it:**
+
+    Move the miner to **bare metal**. Virtualized environments receive approximately 1 billionth of normal rewards by design — this is not a bug. RustChain rewards real physical silicon only.
+
+    If you believe your hardware is genuine bare metal and attestation still fails, check your BIOS/UEFI settings and disable any hypervisor or virtualization flags that may be advertising a virtual environment.
+  </Accordion>
+
+  <Accordion title="Miner won't start">
+    If the miner process exits immediately or never becomes active, work through the following checks.
+
+    **1. Check your Python version.**
+
+    RustChain requires Python 3.8 or later:
+
+    ```bash
+    python3 --version
+    ```
+
+    **2. Check the virtual environment.**
+
+    The miner uses an isolated virtualenv at `~/.rustchain/venv/`. If it is corrupted or missing dependencies, re-run the installer:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash -s -- --wallet YOUR_WALLET_NAME
+    ```
+
+    **3. Check for missing dependencies.**
+
+    Activate the virtualenv and confirm the required packages are present:
+
+    ```bash
+    source ~/.rustchain/venv/bin/activate
+    pip list
+    ```
+
+    **4. Run the miner directly** to see the full error output:
+
+    ```bash
+    ~/.rustchain/venv/bin/python ~/.rustchain/rustchain_miner.py --wallet YOUR_WALLET_NAME
+    ```
+
+    Read the traceback carefully — it will identify the specific module or configuration causing the failure.
+  </Accordion>
+
+  <Accordion title="Low multiplier / expected higher">
+    If your hardware multiplier is lower than you expected based on the [multiplier table](/concepts/multipliers), check the following.
+
+    **1. Verify architecture detection.**
+
+    Confirm the OS is reporting the correct architecture:
+
+    ```bash
+    uname -m
+    ```
+
+    | Platform | Expected output |
+    |----------|----------------|
+    | Intel/AMD Linux or Intel Mac | `x86_64` |
+    | Apple Silicon Mac | `arm64` |
+    | ARM Linux / Raspberry Pi | `aarch64` or `armv7l` |
+    | IBM POWER8 Linux | `ppc64le` |
+    | PowerPC Mac | `powerpc` or `ppc` |
+
+    **2. Confirm you are not running in a container.**
+
+    Docker, LXC, and Kubernetes environments suppress some fingerprint signals, which can cause the attestation server to assign a lower confidence score and reduce your multiplier.
+
+    **3. On Apple Silicon**, do not run the miner under Rosetta 2 (Intel emulation). Use a native ARM64 Python binary. Mixing Rosetta/x86\_64 Python with ARM64 downloads can cause architecture mismatches that affect scoring.
+
+    **4. Remember the time-decay model.**
+
+    Modern hardware (e.g., Apple M1) starts at 1.2x. Its multiplier grows slowly as the hardware ages and eventually crosses into vintage tiers. This is by design — your machine's value increases over time.
+  </Accordion>
+
+  <Accordion title="macOS: Python not found">
+    The RustChain installer relies on `python3` being available in your `PATH`. A fresh macOS installation does not include Python 3.
+
+    **Fix it:**
+
+    Install Python 3 via Homebrew before running the miner installer:
+
+    ```bash
+    brew update
+    brew install python3
+    python3 --version
+    ```
+
+    Then run the RustChain installer:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash
+    ```
+
+    If you do not have Homebrew, install it first from [brew.sh](https://brew.sh), or download Python 3 directly from [python.org/downloads](https://www.python.org/downloads/).
+  </Accordion>
+
+</AccordionGroup>
+
+## View miner logs
+
+Use these commands to inspect live and recent miner output.
+
+**Linux (systemd):**
+
+```bash
+# Follow live log output
+journalctl --user -u rustchain-miner -f
+
+# View the last 100 lines
+journalctl --user -u rustchain-miner -n 100
+```
+
+**macOS (launchd):**
+
+```bash
+# Follow the log file
+tail -f ~/.rustchain/miner.log
+
+# View the last 50 lines
+tail -n 50 ~/.rustchain/miner.log
+```
+
+Look for lines containing `Attestation accepted` to confirm the miner is actively communicating with the network, or `ERROR` / `WARN` entries that point to the specific failure.
+
+## Get help
+
+If these steps do not resolve your issue, reach out to the RustChain community:
+
+- **GitHub Issues:** [github.com/Scottcjn/Rustchain/issues](https://github.com/Scottcjn/Rustchain/issues) — open a bug report or search existing issues
+- **Discord:** [discord.gg/VqVVS2CW9Q](https://discord.gg/VqVVS2CW9Q) — real-time help from the community

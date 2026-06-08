@@ -1,0 +1,153 @@
+---
+title: "Set Up and Manage Your RustChain Wallet"
+sidebarTitle: "Wallet Setup"
+description: "Learn how to create a RustChain wallet, check your RTC balance, view transaction history, and safely transfer tokens using signed transactions."
+---
+
+In RustChain, your wallet is your on-chain identity. It is where your mining rewards land, where bounty payments are sent, and what you use to sign and authorize RTC transfers. Unlike traditional crypto wallets that require a separate creation step before you can do anything, RustChain gives you a wallet automatically the moment you install the miner — your wallet name becomes your `miner_id`, and RTC credits flow to it from the first epoch you participate in.
+
+## Your wallet identity
+
+RustChain uses two distinct public wallet styles, and it is important to understand the difference:
+
+- **`miner_id`** — a human-readable name like `scott-powerbook-g4` or `retro-g5-miner`. This is set during miner installation, used for mining rewards and balance lookups, and safe to share publicly. It does not have a private key on its own.
+- **`RTC…` address** — an Ed25519-backed cryptographic address like `RTC14f06ee294f327f5685d3de5e1ed501cffab33e7`. This is generated from a public/private keypair and is required for **signed transfers** — sending RTC to another wallet.
+
+If you only want to mine and receive rewards, your `miner_id` is enough. If you want to **send RTC**, you need an Ed25519-backed `RTC…` wallet created through the secure GUI (`wallet/rustchain_wallet_secure.py`) or the Python SDK.
+
+<Info>
+  Both a `miner_id` and an `RTC…` address can appear in balance lookups and mining reward records. They are separate identifiers — keep track of which one you are using for each purpose.
+</Info>
+
+<Warning>
+  Use a consistent wallet name throughout setup, mining, and balance checks. A mismatch — even a single character difference — results in rewards crediting to a different wallet than the one you are checking.
+</Warning>
+
+## Check your balance
+
+Query your RTC balance at any time using `curl`. Use `-sk` because the RustChain node uses a self-signed TLS certificate.
+
+```bash
+curl -sk "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET"
+```
+
+Replace `YOUR_WALLET` with your `miner_id` or `RTC…` address. Example:
+
+```bash
+curl -sk "https://rustchain.org/wallet/balance?miner_id=scott-powerbook-g4"
+```
+
+The response looks like this:
+
+```json
+{
+  "miner_id": "scott-powerbook-g4",
+  "amount_rtc": 266.673241,
+  "amount_i64": 266673241
+}
+```
+
+- `amount_rtc` — your balance in whole RTC, including fractional units.
+- `amount_i64` — the same balance expressed as an integer (millionths of RTC).
+- `miner_id` — echoes back the wallet identifier you queried.
+
+You can also browse your balance and confirm your miner is active on the live block explorer at [rustchain.org/explorer](https://rustchain.org/explorer/).
+
+## View transaction history
+
+Retrieve a log of past transactions for your wallet using the `/wallet/history` endpoint:
+
+```bash
+curl -sk "https://rustchain.org/wallet/history?miner_id=YOUR_WALLET"
+```
+
+The response is a JSON array of transaction records. Each entry includes the transaction type, amount, timestamp, and any associated memo or counterparty address:
+
+```json
+[
+  {
+    "tx_id": "a3f9c2...",
+    "type": "epoch_reward",
+    "amount_rtc": 0.302419,
+    "timestamp": "2026-03-09T14:20:00Z",
+    "memo": "epoch 18423 reward"
+  },
+  {
+    "tx_id": "b17de4...",
+    "type": "transfer_received",
+    "amount_rtc": 50.0,
+    "from_address": "RTC14f06ee294f327f5685d3de5e1ed501cffab33e7",
+    "timestamp": "2026-03-08T09:15:00Z",
+    "memo": "bounty payout PR #1847"
+  }
+]
+```
+
+Use this endpoint to audit incoming mining rewards, confirm bounty payments have arrived, and track outgoing transfers.
+
+## Transfer RTC
+
+Sending RTC requires a **cryptographically signed transfer**. The network verifies your Ed25519 signature to confirm you own the sending wallet and that nobody altered the amount or destination after you signed.
+
+<Warning>
+  Signed transfers require an Ed25519-backed `RTC…` wallet. A plain `miner_id` like `scott-powerbook-g4` is not sufficient for `POST /wallet/transfer/signed`. If you only have a `miner_id`, create a secure wallet first using `wallet/rustchain_wallet_secure.py` from the RustChain repo.
+</Warning>
+
+Submit signed transfers to:
+
+```
+POST https://rustchain.org/wallet/transfer/signed
+Content-Type: application/json
+```
+
+The request body must include all of the following fields:
+
+```json
+{
+  "from_address": "RTC14f06ee294f327f5685d3de5e1ed501cffab33e7",
+  "to_address": "RTCb92a1d3e5f7c09ab4d2e8f1c3a6b5d7e9f0a2b4",
+  "amount_rtc": 10.0,
+  "nonce": 1741521000,
+  "memo": "payment for consulting work",
+  "public_key": "a1b2c3d4e5f6...",
+  "signature": "f6e5d4c3b2a1...",
+  "chain_id": "rustchain-mainnet-v2"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `from_address` | string | Your `RTC…` address (the sender). |
+| `to_address` | string | The recipient's `RTC…` address. |
+| `amount_rtc` | number | Amount to send in RTC (minimum fee: 0.0001 RTC). |
+| `nonce` | integer | A unique value — typically a Unix timestamp — that prevents replay attacks. |
+| `memo` | string | Optional note attached to the transfer (visible on the explorer). |
+| `public_key` | string | Your Ed25519 public key as a hex string. |
+| `signature` | string | Ed25519 signature of the canonical JSON payload as a hex string. |
+| `chain_id` | string | Must be `"rustchain-mainnet-v2"` for mainnet transfers. |
+
+The canonical message you sign is the sorted, compact JSON of `from`, `to`, `amount`, `memo`, and `nonce` — exactly as the server will reconstruct it to verify. Use the secure GUI (`wallet/rustchain_wallet_secure.py`) or the Python SDK to handle signing automatically. See `docs/WALLET_USER_GUIDE.md` in the repo for a full working Python example using `pynacl`.
+
+A successful response returns HTTP 200 with the transaction ID:
+
+```json
+{
+  "tx_id": "c4a9f1...",
+  "status": "accepted"
+}
+```
+
+<Info>
+  The transfer fee is **0.0001 RTC** per transaction, deducted from the sender's balance. Attestation to the network is always free.
+</Info>
+
+## Security checklist
+
+Follow these practices to keep your RTC safe:
+
+- **Back up your wallet name immediately.** For a miner install, save the printed `miner_id` and copy `/opt/rustchain-miner/config.json` somewhere safe.
+- **For Ed25519 wallets, back up your 24-word seed phrase.** Store it offline. If you lose the seed phrase and private key, nobody — including the RustChain team — can recover your funds.
+- **Never share your private key, seed phrase, or wallet password** with anyone. Your `miner_id` and `RTC…` address are public and safe to share. Everything else is secret.
+- **Verify transfer URLs** before signing any transaction. Always use `https://rustchain.org` as the base URL.
+- **Test with small amounts first.** Send a 0.01 RTC transfer before moving large balances to confirm the destination address is correct.
+- **Save transaction IDs** for every transfer. You will need them if you ever need to audit or recover a transfer.

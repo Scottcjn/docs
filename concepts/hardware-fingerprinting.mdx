@@ -1,0 +1,101 @@
+---
+title: "AI Hardware Fingerprinting: How RustChain Verifies Real Machines"
+sidebarTitle: "Hardware Fingerprinting"
+description: "RustChain uses six hardware fingerprint checks — clock skew, cache timing, SIMD identity, thermal entropy, instruction jitter, and anti-emulation — to verify you're running real silicon."
+---
+
+RustChain's Proof-of-Antiquity consensus only pays out to real physical machines. To enforce that guarantee, every miner submission passes through an AI-powered hardware fingerprinting pipeline that runs six independent checks on your silicon before assigning an antiquity multiplier. A SheepShaver VM configured to look like a PowerBook G4 will fail. A real G4 that has been running for years will pass — because silicon aging leaves physical signatures that no emulator can fake.
+
+## The 6 Fingerprint Checks
+
+### 1. Clock-Skew & Oscillator Drift
+
+Every real CPU contains a crystal oscillator that drifts slightly as the hardware ages. The exact drift pattern is unique to each physical chip. The fingerprint system measures this drift and compares it against expected signatures for the claimed architecture.
+
+New silicon has a predictable oscillator profile. Old silicon has a richer, more distinctive one. VMs and emulators virtualize the clock — producing a timing profile that is far too clean and too stable to be real.
+
+### 2. Cache Timing Fingerprint
+
+L1, L2, and L3 cache access latencies are determined by the physical design of a specific microarchitecture and cannot be precisely replicated in software. A genuine PowerPC G4 has a cache timing signature that is architecturally distinct from a modern x86 CPU, an Apple Silicon chip, or a software emulator running on either.
+
+The fingerprint system exercises the cache hierarchy and measures the resulting latency distribution. The pattern must match what is physically expected for the claimed CPU family.
+
+### 3. SIMD Unit Identity
+
+Each CPU family exposes a characteristic instruction set for SIMD operations:
+- **PowerPC G4/G5** — AltiVec (Velocity Engine)
+- **x86 vintage and modern** — MMX, SSE, SSE2/3/4, AVX
+- **Apple Silicon** — NEON / AMX
+- **IBM POWER8/9** — VSX
+
+The fingerprint system executes SIMD instructions and compares the results against the expected behavior and timing for the claimed architecture. A machine claiming to be a G4 must produce AltiVec results. A machine claiming to run VSX must demonstrate IBM POWER-class vector behavior. Mismatches flag the submission immediately.
+
+### 4. Thermal Drift Entropy
+
+Physical hardware generates heat in patterns that depend on the chip's construction, age, cooling solution, and workload history. These thermal curves are unique to each machine and cannot be replicated by a hypervisor or emulator, which presents a uniform and artificial thermal response.
+
+The fingerprint system samples thermal entropy during the attestation workload and rejects submissions whose heat curves match emulation-typical flat signatures.
+
+### 5. Instruction Path Jitter
+
+At the microarchitecture level, real CPUs introduce small, reproducible variations in instruction execution timing caused by branch predictors, out-of-order execution buffers, and pipeline stalls. These patterns are specific to each microarchitecture — a Pentium III jitters differently than a G4, which jitters differently than a modern Zen core.
+
+Emulators execute instructions in linear, idealized sequences. Their jitter profiles are synthetic and statistically distinguishable from real hardware.
+
+### 6. Anti-Emulation Detection
+
+The final check targets hypervisors and known emulation environments directly, including:
+- **SheepShaver** and **BasiliskII** (classic Mac emulators)
+- **QEMU** and **KVM**
+- **VirtualBox**, **VMware**, and **Hyper-V**
+- Docker containers and LXC
+- Kubernetes nodes and cloud instances (AWS, Oracle, Azure, GCP)
+
+This check looks for hypervisor signature bits in CPUID results, known emulator artifacts in timing data, and the absence of expected physical hardware behavior.
+
+## Server-Side AI Validation
+
+Your miner client collects fingerprint data and submits it to the attestation nodes. The server does not trust self-reported values — it cross-validates every claim against what the physical evidence actually shows.
+
+The server-side AI validation pipeline runs four checks in parallel:
+
+- **Cross-validation of SIMD features against claimed architecture** — if you claim PowerPC G4 but no AltiVec evidence is present, the submission fails.
+- **ROM clustering detection** — if multiple supposedly different machines submit identical ROM hashes, the server identifies them as an emulator farm and rejects all submissions from that cluster.
+- **Timing distribution analysis** — real oscillators produce imperfect, slightly noisy timing measurements. Synthetic clocks are statistically too perfect. The server runs distribution analysis to distinguish the two.
+- **Thermal anomaly detection** — VMs exhibit uniform thermal response because they simulate heat mathematically. Real hardware does not. Thermal profiles outside expected physical parameters are flagged.
+
+## What Gets Rejected
+
+The following will fail attestation and receive no rewards:
+
+| Submission Type | Reason for Rejection |
+|-----------------|----------------------|
+| VMs (VirtualBox, VMware, Hyper-V) | Hypervisor artifacts in CPUID and timing |
+| Docker containers | Container detection at attestation layer |
+| Cloud instances (AWS EC2, Oracle Cloud, Hetzner) | Known cloud platform signatures |
+| QEMU / KVM | Emulator timing profile and CPUID flags |
+| SheepShaver / BasiliskII (Mac emulators) | Fails oscillator drift and thermal checks |
+| Multiple machines with identical ROM hashes | ROM clustering = emulator farm |
+
+## What Passes
+
+You need real physical silicon with measurable aging characteristics:
+
+- A genuine PowerPC G4 or G5 Mac running macOS or Linux
+- A vintage x86 machine (386, 486, Pentium, Core 2, etc.)
+- An IBM POWER8/POWER9 server
+- A Sun SPARC or SGI MIPS workstation
+- A RISC-V development board (SiFive, StarFive, Milk-V)
+- A modern x86 or Apple Silicon machine — as long as it is bare metal
+
+The key requirement is that the machine must be **bare metal** — an operating system running directly on the physical hardware, not inside a virtualization layer.
+
+<Tip>
+Run the miner directly on bare metal for the best results. If you are currently running inside a VM, install the miner to the host OS instead. The fingerprinting system is designed to reward real hardware, and bare metal passes every check a VM cannot.
+</Tip>
+
+## Fingerprint Spoofing
+
+<Warning>
+Attempting to spoof hardware fingerprints — including manipulating timing data, injecting fake SIMD responses, or replaying recorded fingerprints from a different machine — results in **permanent blacklisting** of both the wallet and the machine identifier. There is no appeal process. The fingerprinting system detects replay attacks through non-deterministic challenge-response sequences that cannot be pre-recorded.
+</Warning>

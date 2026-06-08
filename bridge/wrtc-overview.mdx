@@ -1,0 +1,52 @@
+---
+title: "wRTC: RustChain's Wrapped Token on Solana"
+sidebarTitle: "wRTC Overview"
+description: "wRTC is the Solana-wrapped version of RTC, enabling DeFi access, DEX trading, and cross-chain payments. Currently in early-stage with thin liquidity."
+---
+
+wRTC is the wrapped version of RustChain's native RTC token, deployed on the Solana blockchain. It lets you trade RTC on Solana-based DEXes and participate in DeFi while keeping your RTC earnings from mining. The bridge connects the RustChain network directly to the Solana ecosystem, giving your mining rewards access to a broader set of financial primitives.
+
+<Warning>
+  wRTC liquidity is experimental. The pool is early-stage with very thin liquidity.
+  Do not use wRTC for large transfers until liquidity deepens. Treat it as
+  experimental, not a deep market.
+</Warning>
+
+## How the Bridge Works
+
+The RustChain-Solana bridge uses a **lock-and-mint** model:
+
+1. **Lock RTC** — You submit a lock request on the RustChain side, specifying the amount and your target Solana wallet. The RTC is held in escrow while the bridge confirms your proof.
+2. **Mint wRTC** — Once the lock is confirmed, the bridge mints an equivalent amount of wRTC as an SPL token to your Solana wallet address.
+3. **Reverse** — To convert back, the process runs in reverse: you burn wRTC on Solana and the bridge releases the locked RTC back to your RustChain wallet.
+
+The bridge currently runs as Phase 1 with admin-controlled mint/burn and explicit proof confirmation. A trustless Phase 2 upgrade is planned.
+
+## Use Cases for wRTC
+
+| Use Case | How wRTC Helps |
+|----------|---------------|
+| **DEX trading** | Swap wRTC for SOL, USDC, or other SPL tokens on Raydium and compatible DEXes |
+| **DeFi protocols** | Supply wRTC as collateral or pair it in liquidity pools on Solana DeFi platforms |
+| **Cross-chain payments** | Pay Solana-native agents and services using RTC earnings without leaving your wallet |
+| **Price discovery** | On-chain market data for RTC via DEX charts and aggregators |
+
+## Current Status
+
+wRTC is live and swappable on Solana, but approach it with care:
+
+- **Early-stage:** The bridge launched recently. The mint/burn process works, but the infrastructure is still maturing.
+- **Thin liquidity:** The pool is small. Large orders will move the price significantly. Check pool depth on [DexScreener](https://dexscreener.com/solana/8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb) before swapping.
+- **Experimental:** This is not a production-grade, deep-liquidity bridge. Use it for amounts you are comfortable with given thin-market risk.
+
+The `$0.15` figure used for internal RTC bounty accounting is a **reference rate**, not a market price or a promise of convertibility.
+
+## Getting wRTC
+
+To swap your native RTC for wRTC on Solana, follow the step-by-step bridge instructions:
+
+<CardGroup cols={1}>
+  <Card title="Swap RTC for wRTC" icon="arrow-right-arrow-left" href="/bridge/swap">
+    Step-by-step bridge instructions, safety checklist, and reverse-bridge guide
+  </Card>
+</CardGroup>

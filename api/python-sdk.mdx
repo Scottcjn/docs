@@ -1,0 +1,291 @@
+---
+title: "RustChain Python SDK: Blockchain Client and Wallet Integration"
+sidebarTitle: "Python SDK"
+description: "The RustChain Python SDK provides sync and async clients for node queries, wallet operations, and attestation submission. Install with pip install rustchain."
+---
+
+The RustChain Python SDK wraps the REST API in a clean Python interface, with both synchronous and asynchronous clients for node interaction, wallet management, and attestation.
+
+## Installation
+
+Install the SDK with pip:
+
+```bash
+pip install rustchain
+```
+
+The SDK requires **Python 3.8 or higher** and depends on `requests>=2.28.0`. For async support, the optional `aiohttp>=3.8.0` dependency is also available.
+
+---
+
+## Synchronous client
+
+Use `RustChainClient` for standard, blocking calls. It handles retries, SSL verification, and connection pooling automatically.
+
+```python
+from rustchain import RustChainClient
+
+client = RustChainClient("https://rustchain.org")
+
+# Health check
+health = client.health()
+print(f"Node version: {health['version']}")
+
+# Current epoch
+epoch = client.epoch()
+print(f"Current epoch: {epoch['epoch']}")
+
+# Wallet balance
+balance = client.balance("wallet_address")
+print(f"Balance: {balance['balance']} RTC")
+
+client.close()
+```
+
+You can also use `RustChainClient` as a context manager to close the session automatically:
+
+```python
+with RustChainClient("https://rustchain.org") as client:
+    health = client.health()
+    print(health)
+# Session closes automatically here
+```
+
+**Constructor parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `base_url` | `str` | — | Base URL of your RustChain node |
+| `verify_ssl` | `bool` | `True` | Verify SSL certificates |
+| `timeout` | `int` | `30` | Request timeout in seconds |
+| `retry_count` | `int` | `3` | Total attempts for transient failures (timeouts, 429, 5xx) |
+| `retry_backoff` | `float` | `0.5` | Initial exponential backoff delay in seconds |
+
+For raw-IP or self-signed-certificate nodes, pass `verify_ssl=False`:
+
+```python
+client = RustChainClient("https://50.28.86.131", verify_ssl=False)
+```
+
+---
+
+## Async client
+
+Use `AsyncRustChainClient` in async applications to avoid blocking the event loop. It supports the same methods as the sync client but returns coroutines.
+
+```python
+import asyncio
+from rustchain import AsyncRustChainClient
+
+async def main():
+    async with AsyncRustChainClient("https://rustchain.org") as client:
+        # Health check
+        health = await client.health()
+        print(f"Node version: {health['version']}")
+
+        # Current epoch
+        epoch = await client.epoch()
+        print(f"Current epoch: {epoch['epoch']}")
+
+        # Wallet balance
+        balance = await client.balance("wallet_address")
+        print(f"Balance: {balance['balance']} RTC")
+
+        # List active miners
+        miners = await client.miners()
+        for m in miners:
+            print(f"{m['miner'][:20]}... | {m['device_arch']} | "
+                  f"mult={m['antiquity_multiplier']:.1f}x")
+
+asyncio.run(main())
+```
+
+<Tip>Use the async client for high-throughput agent applications where many concurrent node queries run in a single process.</Tip>
+
+---
+
+## Available methods
+
+Both the sync and async clients expose the following methods:
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `health()` | `health() → dict` | Returns node health, version, uptime, and DB status |
+| `epoch()` | `epoch() → dict` | Returns current epoch number, slot, pot, and enrolled miner count |
+| `balance(wallet)` | `balance(miner_id: str) → dict` | Returns RTC balance for the given wallet address |
+| `miners()` | `miners() → list[dict]` | Returns all active and enrolled miners with hardware details |
+| `submit_attestation(payload)` | `submit_attestation(payload: dict) → dict` | Submits a hardware fingerprint for epoch enrollment |
+| `transfer_history(miner_id)` | `transfer_history(miner_id: str, limit: int = 50) → list[dict]` | Returns recent transfer history for a wallet |
+| `transfer(from_addr, to_addr, amount)` | `transfer(...) → dict` | Transfers RTC from one wallet to another |
+| `check_eligibility(miner_id)` | `check_eligibility(miner_id: str) → dict` | Checks current epoch mining eligibility |
+| `enroll_miner(miner_id)` | `enroll_miner(miner_id: str) → dict` | Enrolls a new miner on the network |
+
+---
+
+## Error handling
+
+The SDK raises typed exceptions so you can handle different failure modes precisely. Import the exceptions you need from the `rustchain` package:
+
+```python
+from rustchain import RustChainClient
+from rustchain.exceptions import (
+    ConnectionError,
+    ValidationError,
+    APIError,
+    AttestationError,
+    TransferError,
+)
+
+client = RustChainClient("https://rustchain.org")
+
+try:
+    balance = client.balance("wallet_address")
+    print(f"Balance: {balance['balance']} RTC")
+except ConnectionError:
+    # Node is unreachable or the request timed out
+    print("Failed to connect to node — check your network or node URL")
+except ValidationError as e:
+    # You passed an invalid parameter
+    print(f"Invalid input: {e}")
+except APIError as e:
+    # The node returned a non-2xx HTTP response
+    print(f"API error {e.status_code}: {e}")
+except AttestationError as e:
+    # Attestation was rejected (e.g., VM detected, bad signature)
+    print(f"Attestation rejected: {e}")
+except TransferError as e:
+    # Transfer failed (e.g., insufficient balance)
+    print(f"Transfer failed: {e}")
+finally:
+    client.close()
+```
+
+---
+
+## Python examples from API docs
+
+The following examples call the RustChain REST API directly with the `requests` library. Install it with `pip install requests`.
+
+### Health check
+
+```python
+import requests
+
+resp = requests.get("https://rustchain.org/health")
+data = resp.json()
+print(f"Node OK: {data['ok']}, Version: {data['version']}")
+print(f"Uptime: {data['uptime_s']}s")
+```
+
+### Get epoch info
+
+```python
+import requests
+
+resp = requests.get("https://rustchain.org/epoch")
+data = resp.json()
+print(f"Epoch {data['epoch']}, Slot {data['slot']}/{data['blocks_per_epoch']}")
+print(f"Pot: {data['epoch_pot']} RTC, Miners: {data['enrolled_miners']}")
+```
+
+### List active miners
+
+```python
+import requests
+
+resp = requests.get("https://rustchain.org/api/miners")
+miners = resp.json()
+for m in miners:
+    print(f"{m['miner'][:20]}... | {m['device_arch']} | "
+          f"mult={m['antiquity_multiplier']:.1f}x | "
+          f"last={m['last_attest']}")
+```
+
+Each miner entry includes an `antiquity_multiplier` between 1.0× and 2.5×. Older hardware earns a higher multiplier — a PowerPC G4 miner, for example, returns `2.5`.
+
+### Check wallet balance
+
+```python
+import requests
+
+miner_id = "your_wallet_name"
+resp = requests.get(
+    "https://rustchain.org/wallet/balance",
+    params={"miner_id": miner_id},
+)
+data = resp.json()
+print(f"Balance: {data['amount_rtc']} RTC ({data['amount_i64']} micro-RTC)")
+```
+
+### Get wallet history
+
+```python
+import requests
+
+miner_id = "your_wallet_name"
+resp = requests.get(
+    "https://rustchain.org/wallet/history",
+    params={"miner_id": miner_id, "limit": 10},
+)
+for tx in resp.json():
+    print(f"{tx['tx_id'][:12]}... | {tx['direction']} | {tx['amount']} RTC | {tx['status']}")
+```
+
+History is ordered newest-first. The `direction` field is either `sent` or `received` relative to the queried wallet. Pending transfers use a `pending_<id>` format for `tx_id` until they confirm.
+
+### Submit attestation (authenticated)
+
+```python
+import requests
+import json
+import time
+import hashlib
+
+# Build the attestation payload
+payload = {
+    "version": 1,
+    "miner_id": "your_wallet_name",
+    "arch": "x86_64",
+    "entropy": hashlib.sha256(str(time.time()).encode()).hexdigest()[:32],
+    "timestamp": int(time.time()),
+}
+
+# Sign with your Ed25519 private key before submitting
+# (requires the `cryptography` package or similar)
+# signature = sign_payload(payload, private_key)
+
+resp = requests.post(
+    "https://rustchain.org/attest/submit",
+    json={**payload, "signature": "<your_ed25519_signature_hex>"},
+    timeout=10,
+)
+result = resp.json()
+if result.get("success"):
+    print(f"Enrolled in epoch {result['epoch']} with {result['multiplier']}x multiplier")
+else:
+    print(f"Attestation rejected: {result.get('error')}")
+```
+
+### Error handling example
+
+```python
+import requests
+
+try:
+    resp = requests.get(
+        "https://rustchain.org/wallet/balance",
+        params={"miner_id": "nonexistent_wallet"},
+        timeout=5,
+    )
+    if resp.status_code == 200:
+        data = resp.json()
+        print(f"Balance: {data['amount_rtc']} RTC")
+    elif resp.status_code == 404:
+        print("Wallet not found")
+    else:
+        print(f"Error {resp.status_code}: {resp.text}")
+except requests.exceptions.Timeout:
+    print("Request timed out — node may be overloaded")
+except requests.exceptions.ConnectionError:
+    print("Connection failed — check the node URL or your network")
+```

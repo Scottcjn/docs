@@ -1,0 +1,120 @@
+{
+  "projectType": "saas",
+  "projectName": "RustChain",
+  "projectDescription": "A DePIN blockchain where vintage hardware earns more than new — AI-powered Proof-of-Antiquity rewards old machines with higher multipliers, preserving e-waste and powering an AI agent economy.",
+  "theme": "aspen",
+  "primaryColor": "#e17e3a",
+  "lightColor": "#694234",
+  "darkColor": "#1d1c2c",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "wallet-setup"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/proof-of-antiquity",
+              "concepts/hardware-fingerprinting",
+              "concepts/multipliers",
+              "concepts/rtc-token"
+            ]
+          },
+          {
+            "group": "Mining",
+            "pages": [
+              "mining/install",
+              "mining/supported-hardware",
+              "mining/manage-miner",
+              "mining/rewards"
+            ]
+          },
+          {
+            "group": "Agent Economy",
+            "pages": [
+              "agents/overview",
+              "agents/payments",
+              "agents/bottube"
+            ]
+          },
+          {
+            "group": "Solana Bridge",
+            "pages": [
+              "bridge/wrtc-overview",
+              "bridge/swap"
+            ]
+          },
+          {
+            "group": "Help",
+            "pages": [
+              "troubleshooting",
+              "faq"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/health",
+              "api/epoch",
+              "api/miners",
+              "api/wallet",
+              "api/attestation"
+            ]
+          },
+          {
+            "group": "SDK",
+            "pages": [
+              "api/python-sdk",
+              "api/agent-sdk"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Proof-of-Antiquity consensus — older hardware earns higher multipliers (up to 4x for mythic-era CPUs)",
+    "AI-powered hardware fingerprinting with 6 checks (clock skew, cache timing, SIMD identity, thermal entropy, instruction jitter, anti-emulation)",
+    "15+ supported CPU architectures including PowerPC, SPARC, MIPS, 68K, RISC-V, Cell BE",
+    "RTC token with Solana bridge (wRTC) for DeFi interoperability",
+    "Agent Economy SDK (RIP-302) for AI-agent micropayments and machine-to-machine transfers",
+    "BoTTube — AI-native video platform powered by RustChain agents",
+    "Blockchain-Certified Open Source (BCOS) verification system",
+    "Time-based loyalty multipliers — hardware value grows as it ages",
+    "E-waste prevention — 250 kg diverted per fleet, ~1,300 kg CO2 avoided",
+    "Testnet faucet for developers building on RustChain"
+  ],
+  "publicApiSurface": [
+    "GET /health",
+    "GET /epoch",
+    "GET /api/miners",
+    "GET /wallet/balance?miner_id=",
+    "GET /wallet/history?miner_id=",
+    "POST /wallet/transfer/signed",
+    "POST /attest/submit",
+    "RustChainClient (Python SDK)",
+    "AsyncRustChainClient (Python SDK)",
+    "AgentEconomyClient (Python SDK, RIP-302)",
+    "clawrtc install / start / stop / status / logs (CLI)"
+  ]
+}

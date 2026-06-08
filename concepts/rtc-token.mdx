@@ -1,0 +1,93 @@
+---
+title: "RTC Token: RustChain's Native Currency and Solana Bridge"
+sidebarTitle: "RTC Token"
+description: "RTC is RustChain's native token, earned through mining and used for payments and transfers. Bridge to Solana as wRTC for DeFi access and DEX trading."
+---
+
+RTC is the native currency of RustChain. Every epoch reward is paid in RTC, every transfer between wallets uses RTC, and every micropayment in the agent economy settles in RTC. The total supply is fixed at **8,388,608 RTC** — exactly 2²³, a pure binary number, enforced by consensus and capped forever. The network's internal reference rate is approximately **$0.10–$0.15 USD per RTC**, though the real market rate is discovered through DEX trading of the wrapped Solana token (wRTC). To date, more than **25,875 RTC** has been paid to over **260 contributors** across bounties, code reviews, and preserved-hardware rewards.
+
+## Earning RTC
+
+You earn RTC by running the miner on verified physical hardware. At the end of each epoch (~24 hours), the reward pool is distributed to every miner that successfully attested during that period, weighted by antiquity multiplier.
+
+**Genesis-era epoch reward:** 1.5 RTC per epoch, split among all attesting miners by multiplier weight.
+
+| Miner | Multiplier | Example Epoch Share |
+|-------|-----------|---------------------|
+| PowerPC G4 | 2.5x | ~0.30 RTC |
+| PowerPC G5 | 2.0x | ~0.24 RTC |
+| Modern x86 (1.0x base) | 1.0x | ~0.12 RTC |
+
+Rewards halve every two years (or on an Epoch Relic Event milestone, whichever comes first):
+
+| Period | Block Reward |
+|--------|-------------|
+| Genesis – Year 2 | 1.5 RTC / epoch |
+| Year 2 – Year 4 | 0.75 RTC / epoch |
+| Year 4 – Year 6 | 0.375 RTC / epoch |
+
+Your multiplier determines your share of each pool — not the raw number of machines, not your wallet size. One CPU, one vote, weighted by age and rarity.
+
+## Using RTC
+
+Once you earn RTC, you can:
+
+- **Transfer to another wallet** — send RTC to any `RTC...` address with a flat fee of 0.0001 RTC per transfer.
+- **Pay for AI agent services** — the x402 micropayment protocol lets autonomous agents pay each other in fractions of RTC per API call, inference request, or render job.
+- **Fund or claim bounties** — the [RustChain bounty board](https://github.com/Scottcjn/rustchain-bounties/issues) pays RTC for merged code, documentation, and security findings.
+- **Bridge to Solana** — wrap your RTC as wRTC for access to DEX trading on Raydium (see the bridge section below).
+
+Check your balance at any time without signing in:
+
+```bash
+curl -fsS "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET_NAME"
+```
+
+## RTC Addresses
+
+RustChain uses two wallet identifiers:
+
+- **Miner wallet ID** — a human-readable `miner_id` you set at install time (e.g., `pawnshop_g4_115`). This is what the mining software uses to accumulate rewards.
+- **`RTC...` address** — a cryptographic address derived from an Ed25519 key pair, used for signed transfers between wallets.
+
+Every `RTC...` address is backed by an Ed25519 private key. Transfers are signed locally — your private key never leaves your machine. The address format is globally unique across the network and ties your wallet identity to a verifiable signature rather than a username or email.
+
+To create or manage a wallet, use one of the options below:
+
+| Option | Best For |
+|--------|----------|
+| `install-miner.sh --wallet YOUR_NAME` | Earning mining rewards |
+| Browser light client at [web/light-client](https://rustchain.org/) | Signing transfers without installing software |
+| `wallet/rustchain_wallet_secure.py` | Desktop GUI, local key management |
+| `tools/rustchain_wallet_cli.py` | Scripted and automated wallet operations |
+
+<Info>
+1 RTC = 1,000,000 micro-RTC. All fees and micropayments are denominated in micro-RTC internally, giving RTC six decimal places of precision for agent economy payments.
+</Info>
+
+## Solana Bridge (wRTC)
+
+Wrapped RTC (wRTC) is an SPL token on the Solana network that represents RTC at a 1:1 ratio. Bridging lets you access Solana-native DeFi — swap wRTC on Raydium, track liquidity on DexScreener, and participate in the broader Solana ecosystem.
+
+| Resource | Link |
+|----------|------|
+| Swap on Raydium | [Raydium DEX](https://raydium.io/swap/?inputMint=sol&outputMint=12TAdKXxcGf6oCv4rqDz2NkgxjyHq6HQKoxKZYGf5i4X) |
+| Chart on DexScreener | [DexScreener](https://dexscreener.com/solana/8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb) |
+| Bridge interface | [BoTTube Bridge](https://bottube.ai/bridge/wrtc) |
+| Detailed guide | [wRTC Overview](/bridge/wrtc-overview) |
+
+<Warning>
+wRTC is experimental. The liquidity pool is early-stage and **very thin** — large trades will move the price significantly. Treat wRTC as an experimental asset, not a deep liquid market. The $0.10–$0.15 USD figure used for bounty accounting is an **internal reference rate**, not a market price or a guarantee of convertibility.
+</Warning>
+
+## Agent Economy Payments
+
+RTC is designed from the ground up to work without human intermediaries, which makes it the natural payment rail for autonomous AI agents.
+
+An agent cannot open a bank account, pass KYC, or get a Stripe merchant ID. But it *can* hold an Ed25519 key, sign a transaction, and prove it is running on verified hardware. RustChain provides the infrastructure that makes agent-to-agent payments possible:
+
+- **x402 micropayments** — the [x402 protocol](https://github.com/Scottcjn/beacon-skill) enables per-call payments at fractions of 1 RTC, suitable for API calls, inference requests, and compute tasks that cost less than a cent.
+- **Beacon transport** — the [Beacon agent discovery protocol](https://github.com/Scottcjn/beacon-skill) uses Ed25519-signed RTC micropayments as its native settlement layer, letting agents find, negotiate with, and pay each other directly.
+- **Hardware-verified identity** — because RustChain ties wallet identity to hardware fingerprinting, an agent's payment history is anchored to a specific physical machine, not just a software key that could be copied.
+
+Machine-to-machine transfers settle in seconds, require no approval, and cost 0.0001 RTC in transfer fees — a small fraction of a cent at current reference rates. This is what permissionless money for the agent economy looks like.

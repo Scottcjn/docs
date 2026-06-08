@@ -1,0 +1,301 @@
+---
+title: "Wallet API: Balance, History, and Signed Transfers"
+sidebarTitle: "Wallet"
+description: "RustChain wallet endpoints: check RTC balance with GET /wallet/balance, view history with GET /wallet/history, and transfer tokens with POST /wallet/transfer/signed."
+---
+
+RustChain's wallet API lets you check balances, browse transaction history, and send signed token transfers. The balance and history endpoints are public and unauthenticated. Transfers require a valid Ed25519 signature from the sending key.
+
+---
+
+## GET /wallet/balance
+
+`GET /wallet/balance` returns the current RTC balance for any wallet address or
+miner ID. The response includes both the human-readable RTC value and the raw
+micro-RTC integer representation.
+
+```bash
+curl -fsS \
+  "https://rustchain.org/wallet/balance?miner_id=eafc6f14eab6d5c5362fe651e5e6c23581892a37RTC" \
+  | jq .
+```
+
+**Query parameters**
+
+<ParamField query="miner_id" type="string" required>
+  The wallet address or miner ID to query. The endpoint also accepts `address`
+  as a backward-compatible alias — both parameters behave identically. Supply
+  one or the other; you do not need both.
+</ParamField>
+
+**Response**
+
+```json
+{
+  "miner_id": "eafc6f14eab6d5c5362fe651e5e6c23581892a37RTC",
+  "amount_rtc": 118.357193,
+  "amount_i64": 118357193
+}
+```
+
+<ResponseField name="miner_id" type="string" required>
+  The wallet address or miner identifier that was queried, echoed back in the
+  response.
+</ResponseField>
+
+<ResponseField name="amount_rtc" type="float" required>
+  The wallet balance expressed in human-readable RTC (e.g. `118.357193`).
+</ResponseField>
+
+<ResponseField name="amount_i64" type="integer" required>
+  The wallet balance in micro-RTC. RustChain uses six decimal places of
+  precision, so `1 RTC = 1,000,000` micro-RTC. This is the canonical integer
+  representation stored in the ledger.
+</ResponseField>
+
+---
+
+## GET /wallet/history
+
+`GET /wallet/history` returns a paginated list of transfers associated with a
+wallet, ordered from newest to oldest. The response includes pending, confirmed,
+and failed transfers.
+
+```bash
+curl -fsS \
+  "https://rustchain.org/wallet/history?miner_id=eafc6f14eab6d5c5362fe651e5e6c23581892a37RTC&limit=10" \
+  | jq .
+```
+
+**Query parameters**
+
+<ParamField query="miner_id" type="string" required>
+  The wallet address or miner ID whose history you want to retrieve. Also
+  accepts `address` as a backward-compatible alias.
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Maximum number of records to return. Defaults to `50`. Clamped to the range
+  `1–200`. Passing a non-integer value returns a `400` error.
+</ParamField>
+
+**Response**
+
+```json
+[
+  {
+    "tx_id": "6df5d4d25b6deef8f0b2e0fa726cecf1",
+    "from_addr": "aliceRTC",
+    "to_addr": "bobRTC",
+    "amount": 1.25,
+    "status": "pending",
+    "direction": "sent",
+    "counterparty": "bobRTC",
+    "memo": "payment",
+    "timestamp": 1772848800,
+    "confirmed_at": null,
+    "confirms_at": 1772935200
+  },
+  {
+    "tx_id": "abc123def456...",
+    "from_addr": "carolRTC",
+    "to_addr": "aliceRTC",
+    "amount": 5.0,
+    "status": "confirmed",
+    "direction": "received",
+    "counterparty": "carolRTC",
+    "memo": null,
+    "timestamp": 1772762400,
+    "confirmed_at": 1772848800,
+    "confirms_at": 1772848800
+  }
+]
+```
+
+<ResponseField name="tx_id" type="string" required>
+  The transaction hash. For transfers that have not yet been committed to a
+  block, this field holds a stable pending fallback ID in the form
+  `pending_{id}` until the transfer confirms.
+</ResponseField>
+
+<ResponseField name="from_addr" type="string" required>
+  The sender's wallet address.
+</ResponseField>
+
+<ResponseField name="to_addr" type="string" required>
+  The recipient's wallet address.
+</ResponseField>
+
+<ResponseField name="amount" type="float" required>
+  The transferred amount in human-readable RTC.
+</ResponseField>
+
+<ResponseField name="status" type="string" required>
+  Normalized transfer status. One of `"pending"`, `"confirmed"`, or `"failed"`.
+  The raw ledger status (`pending`, `confirmed`, `voided`) is normalized so that
+  any non-pending, non-confirmed status maps to `"failed"`.
+</ResponseField>
+
+<ResponseField name="direction" type="string" required>
+  Whether this transfer is `"sent"` or `"received"` relative to the wallet you
+  queried.
+</ResponseField>
+
+<ResponseField name="counterparty" type="string" required>
+  The other wallet address in the transfer — the recipient when you sent, or
+  the sender when you received.
+</ResponseField>
+
+<ResponseField name="memo" type="string | null" required>
+  An optional memo string attached to the transfer at signing time. `null` when
+  no memo was provided. Extracted from the `reason` field when the transfer was
+  submitted with a `signed_transfer:` prefix.
+</ResponseField>
+
+<ResponseField name="timestamp" type="integer" required>
+  Unix timestamp (seconds) when the transfer was created and entered the pending
+  ledger.
+</ResponseField>
+
+<ResponseField name="confirmed_at" type="integer | null" required>
+  Unix timestamp when the transfer was confirmed. `null` for pending or failed
+  transfers.
+</ResponseField>
+
+<ResponseField name="confirms_at" type="integer | null" required>
+  Unix timestamp when a pending transfer is scheduled to confirm. `null` for
+  transfers that are already confirmed or have failed.
+</ResponseField>
+
+<Note>
+  **Pagination:** Results default to 50 records and are clamped to a maximum of
+  200. Pass `limit=200` to fetch the largest page in a single request. If a
+  wallet has no transfer history the endpoint returns an empty array `[]`.
+</Note>
+
+---
+
+## POST /wallet/transfer/signed
+
+`POST /wallet/transfer/signed` submits a signed RTC transfer to the network.
+You must construct the canonical transfer payload, sign it with the Ed25519
+private key that corresponds to `from_address`, and include the resulting
+signature and public key in the request body. The node verifies the signature
+before accepting the transfer.
+
+```bash
+curl -fsS -X POST https://rustchain.org/wallet/transfer/signed \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from_address": "RTCaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "to_address":   "RTCbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "amount_rtc":   1.5,
+    "nonce":        12345,
+    "memo":         "",
+    "public_key":   "ed25519_public_key_hex",
+    "signature":    "ed25519_signature_hex",
+    "chain_id":     "rustchain-mainnet-v2"
+  }'
+```
+
+**Request body**
+
+<ParamField body="from_address" type="string" required>
+  The sender's `RTC...` wallet address. Must match the public key supplied in
+  `public_key`.
+</ParamField>
+
+<ParamField body="to_address" type="string" required>
+  The recipient's `RTC...` wallet address.
+</ParamField>
+
+<ParamField body="amount_rtc" type="number" required>
+  The amount to transfer expressed in **human-readable RTC** (e.g. `1.5` for
+  1.5 RTC). Do not pass micro-RTC integers here.
+</ParamField>
+
+<ParamField body="nonce" type="integer" required>
+  A monotonically increasing nonce used for replay protection. Each transfer
+  from a given sender must use a nonce higher than any previously accepted
+  transfer.
+</ParamField>
+
+<ParamField body="memo" type="string">
+  An optional free-text memo included in the signed payload and stored with the
+  transfer. Pass an empty string `""` if you do not need a memo.
+</ParamField>
+
+<ParamField body="public_key" type="string" required>
+  The sender's Ed25519 public key, encoded as a lowercase hex string.
+</ParamField>
+
+<ParamField body="signature" type="string" required>
+  The Ed25519 signature over the canonical transfer payload, encoded as a
+  lowercase hex string. The node rejects the transfer if this signature does not
+  verify against `public_key` and the reconstructed payload.
+</ParamField>
+
+<ParamField body="chain_id" type="string" required>
+  The chain identifier that scopes this transfer. Use `"rustchain-mainnet-v2"`
+  for mainnet. Including `chain_id` in the signed payload prevents cross-chain
+  replay attacks.
+</ParamField>
+
+**Response — success**
+
+```json
+{
+  "ok": true,
+  "verified": true,
+  "phase": "pending",
+  "tx_hash": "abc123...",
+  "amount_rtc": 1.5,
+  "chain_id": "rustchain-mainnet-v2",
+  "confirms_in_hours": 24
+}
+```
+
+<ResponseField name="ok" type="boolean" required>
+  `true` when the node accepted and queued the transfer.
+</ResponseField>
+
+<ResponseField name="verified" type="boolean" required>
+  `true` when the Ed25519 signature passed verification.
+</ResponseField>
+
+<ResponseField name="phase" type="string" required>
+  The initial lifecycle phase of the transfer. Always `"pending"` on
+  acceptance — the transfer settles in the next epoch.
+</ResponseField>
+
+<ResponseField name="tx_hash" type="string" required>
+  The transaction hash assigned to this transfer. Use this value to look up the
+  transfer in `GET /wallet/history`.
+</ResponseField>
+
+<ResponseField name="amount_rtc" type="float" required>
+  The accepted transfer amount in RTC, echoed back from the request.
+</ResponseField>
+
+<ResponseField name="chain_id" type="string" required>
+  The chain identifier, echoed back from the request.
+</ResponseField>
+
+<ResponseField name="confirms_in_hours" type="integer" required>
+  Estimated hours until the transfer moves from `pending` to `confirmed`.
+  Transfers settle at the end of the current epoch, so this value is at most
+  `24`.
+</ResponseField>
+
+<Note>
+  **`amount_rtc` is human-readable RTC, not micro-RTC.** Pass `1.5` to transfer
+  1.5 RTC. Passing the micro-RTC integer `1500000` would attempt to transfer
+  1,500,000 RTC and will be rejected if the sender's balance is insufficient.
+</Note>
+
+<Note>
+  **Transfers confirm in approximately 24 hours.** Signed transfers settle at
+  the epoch boundary. At 144 blocks per epoch the maximum wait is one full
+  epoch (~24 hours). You can monitor status via `GET /wallet/history` using the
+  returned `tx_hash`.
+</Note>

@@ -1,0 +1,178 @@
+---
+title: "Signing RustChain Transactions with Ed25519"
+sidebarTitle: "Authentication"
+description: "RustChain uses Ed25519 digital signatures to authenticate wallet transfers and attestations. Learn how to generate keys, sign payloads, and construct signed requests."
+---
+
+RustChain authenticates wallet transfers and attestation submissions using Ed25519 digital signatures. Most read-only endpoints (balance, health, epoch) require no authentication — you can call them freely without any keys or tokens.
+
+## Which Endpoints Require Signing
+
+Only write operations require a signature. Everything else is public and unauthenticated:
+
+| Endpoint | Requires signature? |
+|----------|-------------------|
+| `GET /health` | No |
+| `GET /epoch` | No |
+| `GET /api/miners` | No |
+| `GET /wallet/balance` | No |
+| `GET /wallet/history` | No |
+| `POST /wallet/transfer/signed` | **Yes** — Ed25519 signature required |
+| `POST /attest/submit` | **Yes** — Ed25519 signature required |
+
+## Key Concepts
+
+Before you generate keys or construct a signed request, understand these four concepts:
+
+| Concept | Description |
+|---------|-------------|
+| **Ed25519 key pair** | A 32-byte private key and its corresponding 32-byte public key. You sign with the private key; the network verifies with the public key. |
+| **RTC wallet address** | Your on-chain identity for signed transfers, always prefixed with `RTC` (e.g., `RTCaaaa...`). Distinct from your miner ID used for reward tracking. |
+| **Nonce** | A unique integer included in every signed payload to prevent replay attacks. Use a Unix timestamp or a monotonically incrementing counter. |
+| **Chain ID** | A string that scopes the signature to a specific network, preventing a valid mainnet signature from being reused on a testnet. |
+
+## Generating an Ed25519 Key Pair
+
+Use the `cryptography` library to generate a fresh Ed25519 key pair:
+
+```python
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+import secrets
+
+private_key = Ed25519PrivateKey.generate()
+public_key = private_key.public_key()
+
+# Export to hex
+pub_hex = public_key.public_bytes_raw().hex()
+print(f"Public key: {pub_hex}")
+```
+
+<Note>
+Install the library with `pip install cryptography` if you haven't already.
+</Note>
+
+To persist your private key, export it to raw bytes and store it securely:
+
+```python
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+
+# Export raw 32-byte private key to hex for storage
+priv_bytes = private_key.private_bytes(Encoding.Raw, PrivateFormat.Raw, NoEncryption())
+priv_hex = priv_bytes.hex()
+print(f"Private key (store securely!): {priv_hex}")
+```
+
+To reload the private key from a stored hex string:
+
+```python
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+priv_hex = "your_stored_hex_string"
+private_key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(priv_hex))
+public_key = private_key.public_key()
+```
+
+## Signing a Transfer Payload
+
+RustChain verifies signatures over a **canonical JSON payload** — a deterministic, compact JSON string with no extra whitespace and keys in a defined order. You must construct this exact string, sign it, and then include the signature alongside the full request body.
+
+Here is how to sign a transfer payload end-to-end:
+
+```python
+import json
+import time
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+
+# Load your private key from secure storage
+priv_hex = "your_stored_private_key_hex"
+private_key = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(priv_hex))
+public_key = private_key.public_key()
+pub_hex = public_key.public_bytes_raw().hex()
+
+# Build the canonical payload — key order must match exactly
+payload = {
+    "from_address": "RTCaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "to_address":   "RTCbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "amount_rtc":   1.5,
+    "nonce":        int(time.time()),   # Unix timestamp as nonce
+    "memo":         "invoice-42",
+    "public_key":   pub_hex,
+    "chain_id":     "rustchain-mainnet-v2",
+}
+
+# Serialize to canonical JSON (no spaces, sorted keys)
+canonical = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+
+# Sign the UTF-8-encoded canonical string
+signature_bytes = private_key.sign(canonical.encode("utf-8"))
+sig_hex = signature_bytes.hex()
+
+# Build the final signed request body
+signed_request = {**payload, "signature": sig_hex}
+```
+
+Then submit the signed request:
+
+```python
+import requests
+
+resp = requests.post(
+    "https://rustchain.org/wallet/transfer/signed",
+    json=signed_request,
+    headers={"Content-Type": "application/json"},
+)
+print(resp.json())
+```
+
+A successful response looks like this:
+
+```json
+{
+  "ok": true,
+  "verified": true,
+  "phase": "pending",
+  "tx_hash": "abc123...",
+  "amount_rtc": 1.5,
+  "chain_id": "rustchain-mainnet-v2",
+  "confirms_in_hours": 24
+}
+```
+
+## Required Fields in Signed Requests
+
+Every `POST /wallet/transfer/signed` request body must include all of the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `from_address` | string | Sender's `RTC...` wallet address |
+| `to_address` | string | Recipient's `RTC...` wallet address |
+| `amount_rtc` | float | Amount to transfer, in human-readable RTC (not micro-RTC) |
+| `nonce` | integer | Unique integer for this request — use a Unix timestamp or incrementing counter |
+| `memo` | string | Optional memo string; include in the canonical payload even if empty (`""`) |
+| `public_key` | string | Sender's Ed25519 public key as a lowercase hex string |
+| `signature` | string | Ed25519 signature over the canonical JSON payload, as a lowercase hex string |
+| `chain_id` | string | Network identifier — always `rustchain-mainnet-v2` for mainnet |
+
+## Chain ID
+
+Always use `rustchain-mainnet-v2` when signing transactions for the main RustChain network:
+
+```
+rustchain-mainnet-v2
+```
+
+The chain ID is included inside the signed payload so the network can reject any signature that was not explicitly created for mainnet. If you are testing against a local devnet, that node will advertise its own chain ID — never use a mainnet-signed payload on a different chain.
+
+<Note>
+**Keep your private key secret.** Never commit it to source control, log it, or transmit it over the network. Store it in an environment variable or a secrets manager, and load it at runtime:
+
+```python
+import os
+priv_hex = os.environ["RUSTCHAIN_PRIVATE_KEY"]
+```
+</Note>
+
+<Warning>
+**Replay protection via nonce.** The network rejects any transfer whose nonce has already been seen for your address. Every request must use a fresh nonce — a Unix timestamp (`int(time.time())`) or a monotonically incrementing counter both work. Never reuse a nonce, even across restarts.
+</Warning>

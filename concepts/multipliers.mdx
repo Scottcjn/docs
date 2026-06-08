@@ -1,0 +1,183 @@
+---
+title: "RustChain Reward Multipliers: Hardware Antiquity Scoring Guide"
+sidebarTitle: "Multipliers"
+description: "See exactly how much your hardware earns with RustChain's antiquity multiplier system. PowerPC G4 earns 2.5x, vintage 386 earns 3x, and modern ARM SBCs earn a penalty rate."
+---
+
+RustChain reward multipliers are based on hardware rarity and preservation value, not processing power. A machine that costs $35 and can be ordered by the thousand earns almost nothing. A machine from 1979 that still boots and computes — and that took effort to keep alive — earns the most. The multiplier system encodes this philosophy in every epoch reward.
+
+## Full Multiplier Table
+
+### PowerPC
+
+| CPU | Multiplier | Notes |
+|-----|-----------|-------|
+| PowerPC G4 (7450/7447/7455) | **2.5x** | Power Mac G4, PowerBook G4 — Vintage Mac |
+| PowerPC G5 (970) | **2.0x** | Power Mac G5, iMac G5 — last PowerPC Mac |
+| PowerPC G3 (750) | **1.8x** | Early iMac, PowerBook G3 |
+| IBM POWER9 | **1.8x** | Modern POWER — rare enterprise server |
+| IBM POWER8 | **1.5x** | Enterprise server, ppc64le — rare |
+
+### Vintage x86
+
+| CPU | Multiplier | Notes |
+|-----|-----------|-------|
+| Intel 386 | **3.0x** | First 32-bit x86 (1985) |
+| Intel 486 | **2.9x** | DOS era (1989) |
+| Pentium (P5/P54C) | **2.5x** | Windows 95 era (1993) |
+| Pentium Pro | **2.4x** | Late 90s server (1995) |
+| Pentium II | **2.3x** | Late 90s desktop (1997) |
+| Pentium III | **2.0x** | Late 90s / Y2K era (1999) |
+| Pentium 4 | **1.5x** | NetBurst era (2000–2006) |
+| Core 2 Duo / Quad | **1.3x** | First Core architecture (2006–2008) |
+| Nehalem (1st-gen Core i) | **1.2x** | Sandy Bridge predecessor (2008–2010) |
+| Sandy Bridge / Ivy Bridge | **1.1x** | 2nd and 3rd-gen Core i (2011–2013) |
+| Haswell | **1.1x** | 4th-gen Core i (2013–2015) |
+| Skylake and newer Intel | **0.8x** | 6th-gen and later |
+
+### Oddball x86 (Rarity Bonus)
+
+| CPU | Multiplier | Notes |
+|-----|-----------|-------|
+| Cyrix 6x86 / 6x86MX | **2.3–2.5x** | Rare x86 clone |
+| VIA C3 / C7 | **1.8–2.0x** | Low-power x86, unusual ISA quirks |
+| Transmeta Crusoe / Efficeon | **1.9–2.1x** | Code-morphing architecture |
+
+### Apple Silicon
+
+| CPU | Multiplier | Notes |
+|-----|-----------|-------|
+| Apple M1 | **1.2x** | First Apple Silicon (2020) |
+| Apple M2 | **1.15x** | Second generation (2022) |
+| Apple M3 | **1.1x** | Third generation (2023) |
+| Apple M4 | **1.05x** | Fourth generation (2024) |
+
+### Modern x86
+
+| CPU | Multiplier | Notes |
+|-----|-----------|-------|
+| Skylake and later Intel | **0.8x** | Commonplace modern hardware |
+| Zen 3 and later AMD | **0.8x** | Commonplace modern hardware |
+| Unknown x86_64 | **0.8x** | Default for unrecognized modern x86 |
+
+<Info>
+Modern x86 and Apple Silicon can earn more than their base rate through the loyalty bonus. See the loyalty bonus schedule below.
+</Info>
+
+### RISC-V
+
+| CPU | Multiplier | Notes |
+|-----|-----------|-------|
+| SiFive U74 (RV64, early boards) | **1.5x** | SiFive HiFive Unmatched, early Linux RISC-V |
+| StarFive JH7110 / generic RV64GC | **1.4x** | VisionFive 2, Milk-V Mars |
+| Generic RV32IM / RV32IMAC | **1.4x** | Embedded profile, minimal extensions |
+
+RISC-V is treated as an exotic open-ISA platform. Boards with the Vector extension (RVV) receive a modest downward adjustment as a modernity marker.
+
+### Legendary and Mythic Tier (Ultra-Rare)
+
+| CPU | Multiplier | Era |
+|-----|-----------|-----|
+| Acorn ARM2 (1987) | **4.0x** | MYTHIC — where ARM began |
+| ARM3 (Acorn A540, 1989) | **3.8x** | MYTHIC |
+| ARM6 / ARM610 (1991) | **3.5x** | MYTHIC |
+| DEC VAX-11/780 (1977) | **3.5x** | MYTHIC — "Shall we play a game?" |
+| Inmos Transputer T414/T800 (1984) | **3.5x** | MYTHIC — parallel computing pioneer |
+| Fairchild Clipper C100/C300 (1985) | **3.5x** | MYTHIC — Intergraph workstation RISC |
+| NS32032 / NS32532 (1982) | **3.5x** | MYTHIC — National Semiconductor |
+| IBM ROMP / RT PC (1986) | **3.5x** | MYTHIC — first commercial RISC |
+| Motorola 68000 (1979) | **3.0x** | LEGENDARY — Amiga, Atari ST, classic Mac |
+| Sun SPARC v7 (1987) | **2.9x** | LEGENDARY — workstation royalty |
+| SGI MIPS R4000 (1991) | **2.8x** | LEGENDARY — 64-bit before it was cool |
+| ARM7TDMI (1994) | **3.0x** | LEGENDARY vintage ARM (GBA, iPod) |
+| StrongARM SA-110 (1996) | **2.8x** | LEGENDARY vintage ARM |
+| Intel i860 / i960 (1988–1989) | **3.0x** | LEGENDARY dead architectures |
+| DEC Alpha (1992) | **3.0x** | LEGENDARY — fastest CPU of its era |
+| HP PA-RISC (1986) | **3.0x** | LEGENDARY — HP workstations |
+
+### ARM Penalty
+
+| CPU | Multiplier | Reason |
+|-----|-----------|--------|
+| aarch64 (Cortex-A53/A55/A72/A76) | **0.0005x** | Common NAS/SBC platform |
+| Raspberry Pi 4 (BCM2711) | **0.0005x** | $35 commodity hardware |
+| Raspberry Pi 5 (BCM2712) | **0.0005x** | $35 commodity hardware |
+| AWS Graviton | **0.0005x** | Cloud ARM instance |
+| Ampere Altra | **0.0005x** | Cloud ARM server |
+| Synology / QNAP NAS | **0.0005x** | Mass-market ARM NAS |
+
+<Warning>
+The ARM penalty exists to prevent cheap SBC farms from flooding the network. A Raspberry Pi costs $35 — someone could spin up thousands. The 0.0005x rate makes farming economically pointless while still allowing legitimate bare-metal ARM owners to participate. **Vintage ARM** (ARM2, ARM3, ARM7TDMI, StrongARM, XScale, Cortex-A8/A9) is a completely different category and receives full antiquity multipliers — see the Legendary/Mythic table above.
+</Warning>
+
+## How Multipliers Are Calculated
+
+Your epoch reward is not just the base multiplier — two dynamic adjustments apply depending on whether your hardware is vintage or modern.
+
+### Time Decay (Vintage Hardware)
+
+Vintage hardware (more than five years old) applies a decay factor to its vintage bonus. This rewards early RustChain adopters who started mining before time decay eroded the bonus.
+
+```
+decay_factor     = 1.0 − (0.15 × (hardware_age − 5) / 5.0)
+vintage_bonus    = base_multiplier − 1.0
+final_multiplier = 1.0 + (vintage_bonus × decay_factor)
+```
+
+**Example — PowerPC G4 (base 2.5x, age 24 years):**
+```
+decay_factor  = 1.0 − (0.15 × 19 / 5.0) = 0.43
+vintage_bonus = 2.5 − 1.0 = 1.5
+final         = 1.0 + (1.5 × 0.43) = 1.645x
+```
+
+**Example — Core 2 Duo E8400 (base 1.3x, age ~19 years):**
+```
+decay_factor  = 1.0 − (0.15 × 14 / 5.0) = 0.58
+vintage_bonus = 1.3 − 1.0 = 0.3
+final         = 1.0 + (0.3 × 0.58) = 1.174x
+```
+
+### Loyalty Bonus (Modern Hardware)
+
+Modern CPUs (five years old or newer) accumulate a loyalty bonus of **+15% per year of continuous uptime**, capped at +50%.
+
+```
+loyalty_bonus    = min(0.5, uptime_years × 0.15)
+final_multiplier = base_multiplier + loyalty_bonus
+```
+
+| Years Uptime | Bonus | Final (1.0x base) |
+|---|---|---|
+| 0 | +0% | 1.0x |
+| 1 | +15% | 1.15x |
+| 2 | +30% | 1.3x |
+| 3 | +45% | 1.45x |
+| 4+ | +50% (cap) | 1.5x |
+
+### Server Bonus
+
+Enterprise-class CPUs (Intel Xeon, AMD EPYC, AMD Opteron) receive an additional **+10%** on top of their calculated multiplier.
+
+**Example — Xeon E5-1650 v2 (Ivy Bridge, age ~13 years):**
+```
+base          = 1.1x (Ivy Bridge)
+with_decay    = 1.0 + (0.1 × decay_factor) ≈ 1.076x
+with_server   = 1.076 × 1.1 = 1.184x
+```
+
+## Improving Your Multiplier
+
+Use these strategies to maximize your epoch earnings:
+
+**Run rare architectures.** A PowerPC G4, a Sun SPARC workstation, or any MYTHIC/LEGENDARY machine earns dramatically more than modern x86 from day one. Check the [preserved machines tracker](https://rustchain.org/preserved.html) for examples of what other miners are running.
+
+**Keep your machine running continuously.** Both the vintage decay system and the modern loyalty bonus reward consistent uptime. Gaps in attestation history can reset your loyalty streak.
+
+**Start mining early.** Time decay on vintage hardware is real — a G4 that started mining in 2025 earns more per epoch than the same G4 starting in 2030. The best time to plug it in is now.
+
+**Use bare metal.** The hardware fingerprinting system rejects VMs. A machine that fails attestation earns nothing regardless of its theoretical multiplier.
+
+<Info>
+Multipliers are assigned automatically by the hardware attestation system based on your CPU's detected architecture and age. You do not submit or claim a multiplier manually — the server derives it from the six-check fingerprint and cross-validates against known architecture signatures.
+</Info>

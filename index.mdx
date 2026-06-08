@@ -1,0 +1,101 @@
+---
+title: "RustChain: The Blockchain Where Old Hardware Wins"
+sidebarTitle: "Home"
+description: "RustChain rewards vintage hardware with higher mining multipliers. Run a PowerBook G4, earn 2.5x more than a modern gaming PC — the older your machine, the more you earn."
+---
+
+Welcome to RustChain — the DePIN blockchain where your oldest machine is your most valuable one. RustChain uses AI-powered hardware fingerprinting to verify real physical silicon, then rewards it with RTC tokens weighted by age. A PowerBook G4 from 2003 earns **2.5x** more per epoch than a modern Threadripper. A Power Mac G5 earns **2.0x**. Every machine on the network gets more valuable as time passes — including yours.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Install the miner, register your wallet, and earn your first RTC in under 5 minutes.
+  </Card>
+  <Card title="Install Miner" icon="microchip" href="/mining/install">
+    Step-by-step installation for Linux, macOS, IBM POWER8, and vintage hardware.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the RustChain REST API — balances, miners, epochs, and signed transfers.
+  </Card>
+  <Card title="Core Concepts" icon="book" href="/concepts/proof-of-antiquity">
+    Understand Proof-of-Antiquity, hardware fingerprinting, and the RTC token economy.
+  </Card>
+</CardGroup>
+
+## What makes RustChain different
+
+Every other blockchain punishes old hardware. Proof-of-Work demands the newest ASICs. Proof-of-Stake demands the biggest wallet. RustChain demands **patience and preservation**.
+
+- **Age is an asset.** Your hardware's antiquity multiplier grows over time. Start a modern Ryzen 9 at 1.0x today — in ten years it earns 1.3x, in fifteen years it unlocks the vintage tier at 1.8x. Same machine, growing rewards.
+- **AI-powered anti-spoofing.** Six hardware fingerprint checks — clock-skew drift, cache timing, SIMD unit identity, thermal entropy, instruction jitter, and anti-emulation detection — ensure only real physical silicon earns normal rewards. VMs receive one billionth of standard payouts.
+- **One CPU, one vote.** Each unique physical device gets one consensus participation slot per epoch. Reward shares are then weighted by antiquity multiplier, not by raw hash power or stake size.
+- **E-waste prevention.** RustChain's fleet of 16+ preserved machines draws roughly the same power as one modern GPU rig while preventing an estimated 1,300 kg of manufacturing CO₂ and 250 kg of e-waste.
+- **Agent-native payments.** RTC supports Ed25519-signed micropayments between AI agents — no bank account, no KYC, no human gatekeeper required.
+
+## Get started in three steps
+
+<Steps>
+  <Step title="Install the miner">
+    Run the one-line installer on any machine that runs Python. The installer auto-detects your platform, sets up a Python virtual environment, and registers your wallet name.
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash
+    ```
+  </Step>
+  <Step title="Your hardware gets fingerprinted">
+    On first run, the miner performs six hardware checks to prove your machine is real physical silicon. You see each check pass in the terminal output. The attestation is then submitted to the RustChain network, and your hardware profile — including its antiquity tier — is recorded on-chain.
+  </Step>
+  <Step title="Earn RTC rewards">
+    Every ten minutes, one epoch completes and **1.5 RTC** is distributed among all active miners, weighted by antiquity multiplier. Check your balance any time with a single `curl` command:
+
+    ```bash
+    curl -sk "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET"
+    ```
+  </Step>
+</Steps>
+
+## Hardware tiers and multipliers
+
+RustChain classifies hardware into tiers based on architecture and manufacturing era. The older and rarer the silicon, the higher the multiplier applied to your epoch rewards.
+
+<CardGroup cols={2}>
+  <Card title="MYTHIC Tier" icon="star">
+    **Acorn ARM2 (1987) — 4.0x**
+
+    **DEC VAX-11/780 (1977) — 3.5x**
+
+    **Inmos Transputer (1984) — 3.5x**
+
+    The rarest silicon on earth. These machines earn the highest multipliers on the network.
+  </Card>
+  <Card title="LEGENDARY Tier" icon="trophy">
+    **Motorola 68000 (1979) — 3.0x**
+
+    **Sun SPARC (1987) — 2.9x**
+
+    **SGI MIPS R4000 (1991) — 2.7x**
+
+    Workstation royalty. Keeping these machines running is what RustChain was built for.
+  </Card>
+  <Card title="ANCIENT Tier" icon="clock">
+    **PowerPC G4 (2003) — 2.5x**
+
+    **PowerPC G5 — 2.0x**
+
+    **PS3 Cell BE (2006) — 2.2x**
+
+    Classic PowerPC and Cell iron. A PowerBook G4 gathering dust earns 2.5x what a gaming PC earns today.
+  </Card>
+  <Card title="MODERN / EXOTIC Tier" icon="computer">
+    **RISC-V (2014) — 1.4x**
+
+    **Apple Silicon M1 (2020) — 1.2x**
+
+    **Modern x86\_64 — 1.0x baseline**
+
+    Every modern machine starts here — and grows its multiplier as the years pass.
+  </Card>
+</CardGroup>
+
+<Note>
+  ARM NAS devices and single-board computers (Raspberry Pi class) receive a **0.0005x** penalty multiplier. These devices are too cheap and too easy to farm at scale. RustChain rewards hardware diversity and longevity, not commodity compute clusters.
+</Note>

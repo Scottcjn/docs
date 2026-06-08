@@ -1,0 +1,196 @@
+---
+title: "POST /attest/submit — Submit Hardware Attestation to RustChain"
+sidebarTitle: "Attestation"
+description: "Submit a hardware fingerprint attestation to enroll your miner in the current epoch. Includes clock skew, cache timing, SIMD identity, thermal entropy, and anti-emulation checks."
+---
+
+Hardware attestation is how RustChain verifies your machine is real physical silicon. Submit your fingerprint once per epoch to enroll and earn rewards. Each attestation captures six independent hardware probes that together form a fingerprint no virtual machine can replicate reliably.
+
+<Warning>
+  The miner software handles attestation automatically — most users never call
+  this endpoint directly. Your miner daemon submits a fresh attestation at the
+  start of every epoch without any manual intervention. The documentation below
+  is intended for developers building custom miner tooling or debugging
+  attestation failures.
+</Warning>
+
+---
+
+## POST /attest/submit
+
+`POST /attest/submit` accepts a signed hardware fingerprint and, if the
+fingerprint passes all anti-emulation checks, enrolls your miner in the current
+epoch's reward distribution.
+
+```bash
+curl -fsS -X POST https://rustchain.org/attest/submit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "miner_id": "your_miner_id",
+    "fingerprint": {
+      "clock_skew":           { ... },
+      "cache_timing":         { ... },
+      "simd_identity":        { ... },
+      "thermal_entropy":      { ... },
+      "instruction_jitter":   { ... },
+      "behavioral_heuristics":{ ... }
+    },
+    "signature": "base64_ed25519_signature"
+  }'
+```
+
+**Request body**
+
+<ParamField body="miner_id" type="string" required>
+  Your miner's unique identifier — the wallet address or label you registered
+  with the network.
+</ParamField>
+
+<ParamField body="fingerprint" type="object" required>
+  An object containing the six hardware probe results that form your
+  attestation fingerprint. All six keys are required; a missing key causes
+  immediate rejection.
+
+  <Expandable title="Fingerprint fields">
+    <ParamField body="clock_skew" type="object" required>
+      Measurements of CPU clock drift and inter-core timing variance. Physical
+      oscillators exhibit natural, non-deterministic skew that hypervisors
+      cannot reproduce accurately.
+    </ParamField>
+
+    <ParamField body="cache_timing" type="object" required>
+      Cache-hit and cache-miss latency measurements across L1, L2, and L3.
+      Virtual CPUs expose flat or suspiciously uniform latency profiles that
+      differ from real silicon.
+    </ParamField>
+
+    <ParamField body="simd_identity" type="object" required>
+      CPUID SIMD capability flags and execution timing for SIMD instruction
+      sequences. The node cross-checks declared capabilities against measured
+      throughput to detect emulated CPUID leaves.
+    </ParamField>
+
+    <ParamField body="thermal_entropy" type="object" required>
+      Entropy samples drawn from hardware thermal sensors or on-chip RNG
+      sources (e.g. RDRAND/RDSEED on x86, or equivalent on PowerPC). Emulators
+      produce statistically flat or patterned output on these probes.
+    </ParamField>
+
+    <ParamField body="instruction_jitter" type="object" required>
+      Timing variance measurements across repeated execution of a fixed
+      instruction sequence. Physical pipelines exhibit micro-architectural
+      jitter; emulators tend to be unnaturally consistent.
+    </ParamField>
+
+    <ParamField body="behavioral_heuristics" type="object" required>
+      Higher-level anti-emulation signals: hypervisor presence bits in CPUID,
+      known emulator artefacts in device enumeration, and anomalous timing
+      ratios. A positive hypervisor detection here triggers the `VM_DETECTED`
+      rejection code.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="signature" type="string" required>
+  A Base64-encoded Ed25519 signature over the canonical serialisation of the
+  attestation payload (miner ID + fingerprint + current epoch number). The node
+  rejects any attestation whose signature does not verify against the miner's
+  registered public key.
+</ParamField>
+
+**Response — success**
+
+```json
+{
+  "success": true,
+  "enrolled": true,
+  "epoch": 62,
+  "multiplier": 2.5,
+  "next_settlement_slot": 9216
+}
+```
+
+<ResponseField name="success" type="boolean" required>
+  `true` when the attestation was accepted and processed.
+</ResponseField>
+
+<ResponseField name="enrolled" type="boolean" required>
+  `true` when the miner is now enrolled in the current epoch's reward
+  distribution. A miner can receive `success: true` but `enrolled: false` if
+  the epoch enrollment window has already closed.
+</ResponseField>
+
+<ResponseField name="epoch" type="integer" required>
+  The epoch number in which the miner was enrolled.
+</ResponseField>
+
+<ResponseField name="multiplier" type="float" required>
+  The antiquity multiplier assigned to this miner's hardware for the current
+  epoch. This value is applied to the miner's share of the epoch pot at
+  settlement.
+</ResponseField>
+
+<ResponseField name="next_settlement_slot" type="integer" required>
+  The slot number at which the current epoch settles and rewards are
+  distributed. You can compare this against the `slot` field in `GET /epoch` to
+  estimate how long until your miner receives its payout.
+</ResponseField>
+
+**Response — rejection**
+
+```json
+{
+  "success": false,
+  "error": "VM_DETECTED",
+  "check_failed": "behavioral_heuristics",
+  "detail": "Hypervisor signature detected in CPUID"
+}
+```
+
+<ResponseField name="success" type="boolean" required>
+  `false` when the attestation was rejected.
+</ResponseField>
+
+<ResponseField name="error" type="string" required>
+  A machine-readable error code. See the table in the section below for all
+  possible values.
+</ResponseField>
+
+<ResponseField name="check_failed" type="string" required>
+  The name of the specific fingerprint probe that triggered the rejection (e.g.
+  `"behavioral_heuristics"`). Use this to narrow down which aspect of the
+  hardware environment failed inspection.
+</ResponseField>
+
+<ResponseField name="detail" type="string" required>
+  A human-readable explanation of why the check failed (e.g. `"Hypervisor
+  signature detected in CPUID"`).
+</ResponseField>
+
+---
+
+## Attestation rate limit
+
+You may submit at most **one attestation per 10 minutes per miner**. Requests
+that exceed this limit receive a `429 Too Many Requests` response with error
+code `RATE_LIMITED`. Because the miner daemon re-attests once per epoch (~24
+hours), this limit only affects tooling that calls the endpoint in a tight loop.
+
+---
+
+## Common rejection reasons
+
+| Error code | Probe | Cause |
+|---|---|---|
+| `VM_DETECTED` | `behavioral_heuristics` | The hypervisor presence bit is set in CPUID leaf `0x1` (`ECX` bit 31). This bit is set by KVM, VMware, VirtualBox, Hyper-V, and QEMU by default. |
+| `VM_DETECTED` | `behavioral_heuristics` | Known emulator artefacts detected in PCI device enumeration or MSR reads (e.g. QEMU's `KVMKVMKVM` CPUID leaf). |
+| `VM_DETECTED` | `clock_skew` | Clock timing measurements are suspiciously perfect — physical oscillators always exhibit measurable non-deterministic drift that emulators fail to replicate. |
+| `VM_DETECTED` | `cache_timing` | Cache latency profile is flat across all levels, which is characteristic of a virtualised memory subsystem rather than a real cache hierarchy. |
+
+<Note>
+  Attestation is performed by the miner daemon automatically at the start of
+  each epoch. If your miner's attestation is rejected, check the daemon logs for
+  the `check_failed` field and `detail` message. Running your miner inside a
+  virtual machine or containerised environment with hypervisor bits exposed will
+  always trigger `VM_DETECTED`.
+</Note>

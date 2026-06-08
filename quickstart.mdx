@@ -1,0 +1,163 @@
+---
+title: "Get Started with RustChain Mining in Minutes"
+sidebarTitle: "Quickstart"
+description: "Install the RustChain miner, register your wallet, and start earning RTC rewards in under 5 minutes. Works on Linux, macOS, and vintage hardware."
+---
+
+This guide walks you through installing the RustChain miner, registering your wallet, and earning your first RTC rewards. The whole process takes under five minutes on any machine that runs Python — Linux, macOS, IBM POWER8, vintage PowerPC Macs, SPARC workstations, or a modern laptop. No GPU required. No account signup. No payment.
+
+<Steps>
+  <Step title="Check prerequisites">
+    You need three things before you start:
+
+    - **Python 3.8 or later** — the installer handles this automatically on Linux. On macOS, install it first with Homebrew if you don't already have it:
+      ```bash
+      brew install python3
+      ```
+    - **`curl`** — pre-installed on macOS and most Linux distributions. On Debian/Ubuntu, run `sudo apt install curl` if it's missing.
+    - **An internet connection** — your miner talks to the RustChain network to prove your hardware is real.
+
+    That's it. No GPU, no special hardware, no existing crypto wallet required.
+  </Step>
+
+  <Step title="Install the miner">
+    Run the one-line installer in your terminal. It auto-detects your operating system and CPU architecture, installs Python dependencies in an isolated virtual environment, and sets up the miner to start automatically on boot.
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash
+    ```
+
+    **Want to preview what the installer does before committing?** Add `--dry-run`:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash -s -- --dry-run
+    ```
+
+    **Prefer the PyPI package?** Install `clawrtc` directly:
+
+    ```bash
+    python3 -m pip install --user clawrtc && clawrtc install --wallet YOUR_WALLET
+    ```
+
+    Replace `YOUR_WALLET` with the wallet name you choose in the next step. The `clawrtc` package is the recommended method if you want clean version management and the `clawrtc status` / `clawrtc logs` management commands.
+
+    <Note>
+      The installer targets Linux x86\_64, ppc64le, and aarch64, plus macOS Intel and Apple Silicon. Windows users should use the Windows bundle at `miners/windows/rustchain_miner_setup.bat` from the repo instead of this Bash one-liner.
+    </Note>
+  </Step>
+
+  <Step title="Pick your wallet name">
+    During installation, the installer prompts you:
+
+    ```
+    [?] Enter wallet name (or Enter for auto):
+    ```
+
+    Your wallet name is your **miner\_id** — the public identifier where your RTC rewards are credited. Choose something memorable, like `scott-powerbook-g4` or `my-sparc-station`.
+
+    - If you press Enter without typing, the installer generates a name automatically (for example, `miner-myhost-4821`).
+    - To skip the prompt entirely, pass `--wallet` to the installer:
+
+    ```bash
+    curl -sSL https://raw.githubusercontent.com/Scottcjn/Rustchain/main/install-miner.sh | bash -s -- --wallet my-cool-wallet
+    ```
+
+    <Warning>
+      Write down your wallet name now. You need it to check your balance and receive bounty payments. If you forget it, run `cat /opt/rustchain-miner/config.json` or `ls ~/.rustchain/` to find it.
+    </Warning>
+  </Step>
+
+  <Step title="Start mining">
+    If you used the one-line installer, the miner is already running as a background service. Verify it is active:
+
+    **Linux (systemd):**
+    ```bash
+    systemctl --user status rustchain-miner
+    ```
+
+    **macOS (launchd):**
+    ```bash
+    launchctl list | grep rustchain
+    ```
+
+    If you need to start it manually, use either of these commands:
+
+    ```bash
+    # Using clawrtc (recommended)
+    clawrtc start --service
+
+    # Using systemd directly
+    systemctl --user start rustchain-miner
+    ```
+
+    When the miner starts, it runs six hardware fingerprint checks to prove your machine is real physical silicon:
+
+    ```
+    [1/6] Clock-Skew & Oscillator Drift... PASS
+    [2/6] Cache Timing Fingerprint......... PASS
+    [3/6] SIMD Unit Identity............... PASS
+    [4/6] Thermal Drift Entropy............ PASS
+    [5/6] Instruction Path Jitter.......... PASS
+    [6/6] Anti-Emulation Checks............ PASS
+
+    OVERALL RESULT: ALL CHECKS PASSED
+    [+] Attestation accepted. Next attestation in 300s.
+    ```
+
+    Leave the miner running. It submits a fresh attestation to the network every few minutes and earns RTC passively every epoch (every 10 minutes).
+  </Step>
+
+  <Step title="Check your balance">
+    Rewards are distributed at the end of every epoch — every **10 minutes**. After your first epoch settles, check your balance:
+
+    ```bash
+    curl -sk "https://rustchain.org/wallet/balance?miner_id=YOUR_WALLET"
+    ```
+
+    Replace `YOUR_WALLET` with the name you chose during install. Example:
+
+    ```bash
+    curl -sk "https://rustchain.org/wallet/balance?miner_id=scott-powerbook-g4"
+    ```
+
+    Expected response:
+
+    ```json
+    {
+      "miner_id": "scott-powerbook-g4",
+      "amount_rtc": 0.302419,
+      "amount_i64": 302419
+    }
+    ```
+
+    You can also view all active miners and the live block explorer at [rustchain.org/explorer](https://rustchain.org/explorer/).
+
+    <Tip>
+      Wait at least 2–3 full epochs (20–30 minutes) before concluding that rewards are missing. Use `curl -sk https://rustchain.org/api/miners` to confirm your wallet name appears in the active miners list.
+    </Tip>
+  </Step>
+</Steps>
+
+## Hardware multipliers — older earns more
+
+Every 10 minutes, **1.5 RTC** is split among all active miners. Your share is weighted by your hardware's antiquity multiplier. Older silicon gets a larger slice.
+
+| Hardware | Multiplier | Earnings vs. modern PC |
+|---|---|---|
+| PowerPC G4 (2003) | **2.5x** | ~2.5× more per epoch |
+| PowerPC G5 | **2.0x** | ~2× more per epoch |
+| IBM POWER8 | **1.5x** | ~1.5× more per epoch |
+| RISC-V | **1.4x** | ~1.4× more per epoch |
+| Apple Silicon M1 | **1.2x** | ~1.2× more per epoch |
+| Modern x86\_64 | **1.0x** | Baseline |
+| ARM NAS / SBC | **0.0005x** | Near-zero (penalty tier) |
+
+A PowerBook G4 gathering dust in a closet earns roughly **2.5×** what a modern gaming PC earns — just by being old and real.
+
+<Tip>
+  See the complete hardware tier table, including MYTHIC and LEGENDARY tier machines like the DEC VAX (3.5x) and Motorola 68000 (3.0x), at [/mining/supported-hardware](/mining/supported-hardware).
+</Tip>
+
+<Note>
+  Virtual machines (VMware, VirtualBox, QEMU, WSL, Docker) are detected by the anti-emulation fingerprint check and receive approximately one billionth of normal rewards. Run the miner on bare metal — not inside a VM — to earn real RTC.
+</Note>
